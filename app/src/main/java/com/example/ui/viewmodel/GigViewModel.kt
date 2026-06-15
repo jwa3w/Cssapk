@@ -79,6 +79,28 @@ class GigViewModel(private val repository: GigRepository) : ViewModel() {
         _userProfile.value = profile
     }
 
+    private fun getPostalForCity(city: String): String {
+        return when (city.lowercase()) {
+            "sfbay" -> "94102"
+            "newyork" -> "10001"
+            "losangeles" -> "90001"
+            "seattle" -> "98101"
+            "chicago" -> "60601"
+            "austin" -> "78701"
+            "boston" -> "02108"
+            "denver" -> "80202"
+            "portland" -> "97201"
+            "miami" -> "33101"
+            "fresno" -> "93728"
+            "sandiego" -> "92101"
+            "sacramento" -> "95814"
+            "phoenix" -> "85001"
+            "dallas" -> "75201"
+            "atlanta" -> "30301"
+            else -> "94102"
+        }
+    }
+
     fun fetchListings() {
         val city = _selectedCity.value
         val category = _selectedCategory.value
@@ -99,7 +121,9 @@ class GigViewModel(private val repository: GigRepository) : ViewModel() {
                                 repository.fetchGigs(
                                     cityPrefix = singleCity,
                                     category = category,
-                                    query = searchWord
+                                    query = searchWord,
+                                    postal = getPostalForCity(singleCity),
+                                    searchDistance = 1000
                                 )
                             } catch (ex: Exception) {
                                 emptyList<CraigslistGig>()
@@ -113,7 +137,9 @@ class GigViewModel(private val repository: GigRepository) : ViewModel() {
                     val list = repository.fetchGigs(
                         cityPrefix = city,
                         category = category,
-                        query = searchWord
+                        query = searchWord,
+                        postal = getPostalForCity(city),
+                        searchDistance = 1000
                     )
                     _uiState.value = GigsUiState.Success(list)
                 }
