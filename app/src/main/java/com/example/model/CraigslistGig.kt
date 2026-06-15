@@ -15,37 +15,17 @@ data class CraigslistGig(
 ) {
     // Extracts location, e.g. "Web Designer (San Francisco)" -> "San Francisco"
     val displayLocation: String by lazy {
-        val parenIndex = title.lastIndexOf('(')
-        val closeIndex = title.lastIndexOf(')')
-        if (parenIndex != -1 && closeIndex != -1 && closeIndex > parenIndex) {
-            title.substring(parenIndex + 1, closeIndex).trim()
-        } else {
-            ""
-        }
+        ""
     }
 
     // Cleaned title without the location, e.g. "Web Designer (San Francisco)" -> "Web Designer"
     val displayTitle: String by lazy {
-        val parenIndex = title.lastIndexOf('(')
-        if (parenIndex != -1) {
-            val candidate = title.substring(0, parenIndex).trim()
-            if (candidate.isNotEmpty()) candidate else title
-        } else {
-            title
-        }
+        title
     }
 
     // Smart rate/budget extraction from title or description
     val estimatedPay: String by lazy {
-        val combinedText = "$title $description"
-        // Try matching "$XX" or "$XX/hr" or "XX/hour" etc.
-        val rateRegex = Regex("\\$\\s*([0-9]+(?:\\.[0-9]{2})?\\s*(?:/\\s*(?:hr|hour|h)|\\s*flat|\\s*total|\\s*hourly|\\s*k)?)", RegexOption.IGNORE_CASE)
-        val match = rateRegex.find(combinedText)
-        if (match != null) {
-            "$" + match.groupValues[1].trim()
-        } else {
-            ""
-        }
+        ""
     }
 
     // Extract relevant skill descriptors as clean badges
@@ -97,21 +77,15 @@ object CraigslistHtmlParser {
         if (lowerTitle.contains("graphic") || lowerTitle.contains("logo") || lowerTitle.contains("branding")) skills.add("Creative Graphic Design & Brand Identity Kits")
 
         val coreSk = if (skills.isEmpty()) "Modern Web Design and General Development Services" else skills.joinToString(", ")
-        val cityLabel = if (location.isNotEmpty()) location else defaultCity.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
-        val budgetLine = if (price.isNotEmpty()) "• Budget / Hourly Scale: $price (As advertised in Craigslist posting)\n" else ""
 
         return """
             🚀 Position Overview:
             Seeking a freelance designer or developer to coordinate on web-oriented digital projects. The core focal point is: "$title".
             
-            📍 Client Region / Location:
-            • Based near: $cityLabel
-            • Collaboration Model: On-site hybrid or fully remote options (refer to original listing)
-            
             🎯 Expected Expert Skillset:
             • Core Expertise Required: $coreSk
             
-            $budgetLine• Expected Workload: Contract-based freelance milestones.
+            • Expected Workload: Contract-based freelance milestones.
             
             📝 Core Deliverables & Application:
             Because Craigslist listings may undergo immediate replies or rapid expiration, full application mechanisms, secure client coordinates, responsive telephone lines, or messaging portals are accessible on the original post. 
@@ -178,12 +152,7 @@ object CraigslistHtmlParser {
                 val dtRegex = Regex("<(?:span|time)[^>]+?class=\"[^\"]*?date[^\"]*?\"[^>]*?>(.*?)</(?:span|time)>")
                 val dateStr = dtRegex.find(content)?.groupValues?.get(1)?.trim() ?: "Active"
 
-                val finalTitle = when {
-                    price.isNotEmpty() && location.isNotEmpty() -> "$title ($location) - $price"
-                    price.isNotEmpty() -> "$title - $price"
-                    location.isNotEmpty() -> "$title ($location)"
-                    else -> title
-                }
+                val finalTitle = title
 
                 val description = generateDynamicDescription(title, location, defaultCity, price)
 

@@ -47,7 +47,6 @@ import com.example.ui.viewmodel.UserProfile
 // Simple navigation states
 sealed class ActiveTab {
     object Feed : ActiveTab()
-    object Bookmarks : ActiveTab()
     object Profile : ActiveTab()
 }
 
@@ -172,14 +171,6 @@ fun MainScreen(viewModel: GigViewModel) {
                                     searchQuery = searchQuery,
                                     selectedCity = selectedCity,
                                     selectedCategory = selectedCategory,
-                                    bookmarks = bookmarks,
-                                    selectedGigForDetail = selectedGigForDetail,
-                                    onGigClick = { selectedGigForDetail = it }
-                                )
-                            }
-                            ActiveTab.Bookmarks -> {
-                                BookmarksMainContent(
-                                    bookmarks = bookmarks,
                                     selectedGigForDetail = selectedGigForDetail,
                                     onGigClick = { selectedGigForDetail = it }
                                 )
@@ -199,10 +190,8 @@ fun MainScreen(viewModel: GigViewModel) {
                         val currentDetail = selectedGigForDetail
                         if (currentDetail != null) {
                             key(currentDetail.id) {
-                                val isBookmarkedFlow = viewModel.observeIsBookmarked(currentDetail.id).collectAsState(initial = false)
                                 DetailPane(
                                     gig = currentDetail,
-                                    isBookmarked = isBookmarkedFlow.value,
                                     viewModel = viewModel,
                                     onCloseClicked = { selectedGigForDetail = null }
                                 )
@@ -251,16 +240,6 @@ fun MainScreen(viewModel: GigViewModel) {
                                 modifier = Modifier.testTag("nav_tab_feed")
                             )
                             NavigationBarItem(
-                                selected = currentTab == ActiveTab.Bookmarks,
-                                onClick = { 
-                                    currentTab = ActiveTab.Bookmarks
-                                    selectedGigForDetail = null
-                                },
-                                label = { Text("Bookmarks") },
-                                icon = { Icon(Icons.Default.Favorite, contentDescription = "Bookmarks") },
-                                modifier = Modifier.testTag("nav_tab_bookmarks")
-                            )
-                            NavigationBarItem(
                                 selected = currentTab == ActiveTab.Profile,
                                 onClick = { 
                                     currentTab = ActiveTab.Profile
@@ -288,10 +267,8 @@ fun MainScreen(viewModel: GigViewModel) {
                         ) { (tab, detailGig) ->
                             if (detailGig != null) {
                                 key(detailGig.id) {
-                                    val isBookmarkedFlow = viewModel.observeIsBookmarked(detailGig.id).collectAsState(initial = false)
                                     DetailPane(
                                         gig = detailGig,
-                                        isBookmarked = isBookmarkedFlow.value,
                                         viewModel = viewModel,
                                         onCloseClicked = { selectedGigForDetail = null }
                                     )
@@ -305,14 +282,6 @@ fun MainScreen(viewModel: GigViewModel) {
                                             searchQuery = searchQuery,
                                             selectedCity = selectedCity,
                                             selectedCategory = selectedCategory,
-                                            bookmarks = bookmarks,
-                                            selectedGigForDetail = null,
-                                            onGigClick = { selectedGigForDetail = it }
-                                        )
-                                    }
-                                    ActiveTab.Bookmarks -> {
-                                        BookmarksMainContent(
-                                            bookmarks = bookmarks,
                                             selectedGigForDetail = null,
                                             onGigClick = { selectedGigForDetail = it }
                                         )
@@ -338,8 +307,7 @@ fun TabbedHeader(
     TabRow(
         selectedTabIndex = when (currentTab) {
             ActiveTab.Feed -> 0
-            ActiveTab.Bookmarks -> 1
-            ActiveTab.Profile -> 2
+            ActiveTab.Profile -> 1
         },
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.primary
@@ -349,12 +317,6 @@ fun TabbedHeader(
             onClick = { onTabSelected(ActiveTab.Feed) },
             text = { Text("Search Gigs", fontWeight = FontWeight.Bold) },
             icon = { Icon(Icons.Default.Search, contentDescription = null) }
-        )
-        Tab(
-            selected = currentTab == ActiveTab.Bookmarks,
-            onClick = { onTabSelected(ActiveTab.Bookmarks) },
-            text = { Text("Bookmarks", fontWeight = FontWeight.Bold) },
-            icon = { Icon(Icons.Default.Favorite, contentDescription = null) }
         )
         Tab(
             selected = currentTab == ActiveTab.Profile,
@@ -372,7 +334,6 @@ fun FeedMainContent(
     searchQuery: String,
     selectedCity: String,
     selectedCategory: String,
-    bookmarks: List<CraigslistGig>,
     selectedGigForDetail: CraigslistGig?,
     onGigClick: (CraigslistGig) -> Unit
 ) {
@@ -386,14 +347,6 @@ fun FeedMainContent(
             onQueryChanged = { viewModel.updateSearchQuery(it) },
             selectedCategory = selectedCategory,
             onCategorySelected = { viewModel.selectCategory(it) }
-        )
-
-        // Locations Carousel Row
-        LocationsHorizontalSelector(
-            selectedCity = selectedCity,
-            searchQuery = searchQuery,
-            selectedCategory = selectedCategory,
-            onCitySelected = { viewModel.selectCity(it) }
         )
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
@@ -425,7 +378,6 @@ fun FeedMainContent(
                             uiState.list.filter { gig ->
                                 gig.title.lowercase().contains(lower) ||
                                 gig.description.lowercase().contains(lower) ||
-                                gig.displayLocation.lowercase().contains(lower) ||
                                 gig.tags.any { it.lowercase().contains(lower) }
                             }
                         }
@@ -433,15 +385,15 @@ fun FeedMainContent(
 
                     if (filteredGigs.isEmpty()) {
                         EmptyListCard(
-                            title = "No Gigs Found",
+                            title = if (selectedCategory == "rrr") "No Resumes Found" else "No Gigs Found",
                             subtitle = "Try searching for a different keyword, category, or clear city filters.",
                             onSearchTempestClick = {
                                 val q = if (searchQuery.trim().isEmpty()) {
-                                    if (selectedCategory == "wdg") "web design" else "web developer"
+                                    if (selectedCategory == "rrr") "web developer" else "web developer"
                                 } else {
                                     searchQuery.trim()
                                 }
-                                val subcat = if (selectedCategory == "wdg") "wdg" else "web"
+                                val subcat = if (selectedCategory == "rrr") "rrr" else "web"
                                 val url = "https://www.searchtempest.com/search?search_string=${Uri.encode(q)}&category=8&subcat=$subcat"
                                 try {
                                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
@@ -460,12 +412,9 @@ fun FeedMainContent(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             items(filteredGigs, key = { it.id }) { gig ->
-                                val isBookmarked = bookmarks.any { b -> b.id == gig.id }
                                 GigListingItemCard(
                                     gig = gig,
-                                    isBookmarked = isBookmarked,
                                     isSelected = selectedGigForDetail?.id == gig.id,
-                                    onBookmarkToggle = { viewModel.toggleBookmark(gig, isBookmarked) },
                                     onItemClick = { onGigClick(gig) }
                                 )
                             }
@@ -482,62 +431,7 @@ fun FeedMainContent(
     }
 }
 
-@Composable
-fun BookmarksMainContent(
-    bookmarks: List<CraigslistGig>,
-    selectedGigForDetail: CraigslistGig?,
-    onGigClick: (CraigslistGig) -> Unit
-) {
-    if (bookmarks.isEmpty()) {
-        EmptyListCard(
-            title = "Bookmark Gigs",
-            subtitle = "Tap the stars on listings to save them. View and draft custom gig proposals offline!"
-        )
-    } else {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
-                    .padding(12.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Saved Bookmarks (${bookmarks.size})",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("bookmarks_list"),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(bookmarks, key = { it.id }) { gig ->
-                    GigListingItemCard(
-                        gig = gig,
-                        isBookmarked = true,
-                        isSelected = selectedGigForDetail?.id == gig.id,
-                        onBookmarkToggle = { onGigClick(gig) /* trigger and edit */ },
-                        onItemClick = { onGigClick(gig) }
-                    )
-                }
-            }
-        }
-    }
-}
+// BookmarksMainContent removed
 
 @Composable
 fun ProfileMainContent(viewModel: GigViewModel) {
@@ -703,17 +597,17 @@ fun SearchAndDomainBar(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val searchGigs = selectedCategory == "wdg"
+                val searchGigs = selectedCategory == "rrr"
                 FilterChip(
                     selected = searchGigs,
-                    onClick = { onCategorySelected("wdg") },
-                    label = { Text("💻 Web Design Gigs") },
-                    modifier = Modifier.weight(1f).testTag("select_category_wdg")
+                    onClick = { onCategorySelected("rrr") },
+                    label = { Text("📄 Resumes") },
+                    modifier = Modifier.weight(1f).testTag("select_category_rrr")
                 )
                 FilterChip(
                     selected = !searchGigs,
                     onClick = { onCategorySelected("web") },
-                    label = { Text("👔 Web Master Jobs") },
+                    label = { Text("👔 Careers") },
                     modifier = Modifier.weight(1f).testTag("select_category_web")
                 )
             }
@@ -721,77 +615,12 @@ fun SearchAndDomainBar(
     }
 }
 
-@Composable
-fun LocationsHorizontalSelector(
-    selectedCity: String,
-    searchQuery: String,
-    selectedCategory: String,
-    onCitySelected: (String) -> Unit
-) {
-    val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
 
-    val cities = listOf(
-        Pair("all", "🌍 All Areas")
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        cities.forEach { (cityCode, cityName) ->
-            val isSelected = selectedCity == cityCode
-            InputChip(
-                selected = isSelected,
-                onClick = { onCitySelected(cityCode) },
-                label = { Text(cityName, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
-                colors = InputChipDefaults.inputChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                modifier = Modifier.testTag("city_chip_$cityCode")
-            )
-        }
-
-        // SearchTempest External Multi-Area search chip
-        InputChip(
-            selected = false,
-            onClick = {
-                val q = if (searchQuery.trim().isEmpty()) {
-                    if (selectedCategory == "wdg") "web design" else "web developer"
-                } else {
-                    searchQuery.trim()
-                }
-                val subcat = if (selectedCategory == "wdg") "wdg" else "web"
-                val url = "https://www.searchtempest.com/search?search_string=${Uri.encode(q)}&category=8&subcat=$subcat"
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (e: Exception) {
-                    clipboardManager.setText(AnnotatedString(url))
-                    Toast.makeText(context, "SearchTempest URL copied to clipboard", Toast.LENGTH_SHORT).show()
-                }
-            },
-            label = { 
-                Text("🌪️ SearchTempest (All Areas)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary) 
-            },
-            colors = InputChipDefaults.inputChipColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                labelColor = MaterialTheme.colorScheme.onSecondaryContainer
-            ),
-            modifier = Modifier.testTag("city_chip_searchtempest")
-        )
-    }
-}
 
 @Composable
 fun GigListingItemCard(
     gig: CraigslistGig,
-    isBookmarked: Boolean,
     isSelected: Boolean,
-    onBookmarkToggle: () -> Unit,
     onItemClick: () -> Unit
 ) {
     val dateText = remember(gig.date) {
@@ -826,52 +655,20 @@ fun GigListingItemCard(
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Card top info header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Card top info header holding only the date badge
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = dateText,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                    
-                    if (gig.displayLocation.isNotEmpty()) {
-                        Text(
-                            text = "📍 ${gig.displayLocation}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = onBookmarkToggle,
-                    modifier = Modifier.size(24.dp).testTag("bookmark_toggle_${gig.id}")
-                ) {
-                    Icon(
-                        imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Save Bookmarks",
-                        tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = dateText,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontFamily = FontFamily.Monospace
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -884,53 +681,6 @@ fun GigListingItemCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 22.sp
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Bottom pills, dynamic pricing, and descriptors
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    gig.tags.forEach { tag ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = tag,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Pricing highlight badge if detected
-                if (gig.estimatedPay.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.tertiaryContainer)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = gig.estimatedPay,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -938,7 +688,6 @@ fun GigListingItemCard(
 @Composable
 fun DetailPane(
     gig: CraigslistGig,
-    isBookmarked: Boolean,
     viewModel: GigViewModel,
     onCloseClicked: () -> Unit
 ) {
@@ -988,17 +737,6 @@ fun DetailPane(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-
-                    IconButton(
-                        onClick = { viewModel.toggleBookmark(gig, isBookmarked) },
-                        modifier = Modifier.testTag("detail_bookmark_toggle")
-                    ) {
-                        Icon(
-                            imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Save Bookmarks",
-                            tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -1009,16 +747,6 @@ fun DetailPane(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
-                if (gig.displayLocation.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "📍 location: ${gig.displayLocation}",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -1293,11 +1021,11 @@ fun FeedErrorPane(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     val q = if (searchQuery.trim().isEmpty()) {
-                        if (selectedCategory == "wdg") "web design" else "web developer"
+                        if (selectedCategory == "rrr") "web developer" else "web developer"
                     } else {
                         searchQuery.trim()
                     }
-                    val subcat = if (selectedCategory == "wdg") "wdg" else "web"
+                    val subcat = if (selectedCategory == "rrr") "rrr" else "web"
                     val searchTempestUrl = "https://www.searchtempest.com/search?search_string=${Uri.encode(q)}&category=8&subcat=$subcat"
 
                     Button(
