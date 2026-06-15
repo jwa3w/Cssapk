@@ -1,0 +1,6 @@
+{
+  "name": "Craigslist Design Gigs",
+  "description": "Browse, search, and bookmark web design gigs from major Craigslist regions, with built-in pitch draft generation and search features.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
