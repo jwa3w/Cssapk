@@ -176,7 +176,7 @@ fun MainScreen(viewModel: GigViewModel) {
                                 )
                             }
                             ActiveTab.Profile -> {
-                                ProfileMainContent(viewModel = viewModel)
+                                SettingsMainContent(viewModel = viewModel)
                             }
                         }
                     }
@@ -245,9 +245,9 @@ fun MainScreen(viewModel: GigViewModel) {
                                     currentTab = ActiveTab.Profile
                                     selectedGigForDetail = null
                                 },
-                                label = { Text("My Pitch Profile") },
-                                icon = { Icon(Icons.Default.AccountBox, contentDescription = "Profile") },
-                                modifier = Modifier.testTag("nav_tab_profile")
+                                label = { Text("Settings") },
+                                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                                modifier = Modifier.testTag("nav_tab_settings")
                             )
                         }
                     }
@@ -287,7 +287,7 @@ fun MainScreen(viewModel: GigViewModel) {
                                         )
                                     }
                                     ActiveTab.Profile -> {
-                                        ProfileMainContent(viewModel = viewModel)
+                                        SettingsMainContent(viewModel = viewModel)
                                     }
                                 }
                             }
@@ -321,8 +321,8 @@ fun TabbedHeader(
         Tab(
             selected = currentTab == ActiveTab.Profile,
             onClick = { onTabSelected(ActiveTab.Profile) },
-            text = { Text("Pitch Profile", fontWeight = FontWeight.Bold) },
-            icon = { Icon(Icons.Default.AccountBox, contentDescription = null) }
+            text = { Text("Settings", fontWeight = FontWeight.Bold) },
+            icon = { Icon(Icons.Default.Settings, contentDescription = null) }
         )
     }
 }
@@ -434,119 +434,60 @@ fun FeedMainContent(
 // BookmarksMainContent removed
 
 @Composable
-fun ProfileMainContent(viewModel: GigViewModel) {
+fun SettingsMainContent(viewModel: GigViewModel) {
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
-    var name by remember { mutableStateOf(userProfile.fullName) }
-    var portfolio by remember { mutableStateOf(userProfile.portfolioUrl) }
-    var skills by remember { mutableStateOf(userProfile.skills) }
-    var experience by remember { mutableStateOf(userProfile.experience) }
+    var craigslistDesc by remember(userProfile.craigslistDescription) { mutableStateOf(userProfile.craigslistDescription) }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
-            .testTag("profile_section"),
+            .testTag("settings_section"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-            shape = RoundedCornerShape(12.dp)
+        OutlinedTextField(
+            value = craigslistDesc,
+            onValueChange = { 
+                craigslistDesc = it 
+                // Auto-save the template state
+                viewModel.updateProfile(userProfile.copy(craigslistDescription = it))
+            },
+            label = { Text("Craigslist Description Template") },
+            placeholder = { Text("Paste candidate requirements / role description here (e.g. Seeking a WordPress developer with SEO knowledge to design and launch...") },
+            minLines = 6,
+            maxLines = 12,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("settings_craigslist_desc_input"),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent
+            )
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "💼 Smart Cover Letter Settings",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Configure your professional coordinates to automatically generated customized job pitch templates below.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                )
+            Button(
+                onClick = {
+                    viewModel.updateProfile(userProfile.copy(craigslistDescription = craigslistDesc))
+                    keyboardController?.hide()
+                    Toast.makeText(context, "Settings saved!", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.testTag("settings_save_btn"),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Save Template Setting")
             }
         }
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Your Full Name") },
-            leadingIcon = { Icon(Icons.Default.Person, null) },
-            modifier = Modifier.fillMaxWidth().testTag("profile_name_input"),
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
-            )
-        )
-
-        OutlinedTextField(
-            value = portfolio,
-            onValueChange = { portfolio = it },
-            label = { Text("Portfolio Website URL") },
-            leadingIcon = { Icon(Icons.Default.Send, null) },
-            placeholder = { Text("https://behance.net/username") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            modifier = Modifier.fillMaxWidth().testTag("profile_portfolio_input"),
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
-            )
-        )
-
-        OutlinedTextField(
-            value = skills,
-            onValueChange = { skills = it },
-            label = { Text("Key Technical Talents (Separated by commas)") },
-            leadingIcon = { Icon(Icons.Default.Star, null) },
-            placeholder = { Text("UI/UX Design, Figma, React, WordPress") },
-            modifier = Modifier.fillMaxWidth().testTag("profile_skills_input"),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
-            )
-        )
-
-        OutlinedTextField(
-            value = experience,
-            onValueChange = { experience = it },
-            label = { Text("Professional Experience Paragraph") },
-            leadingIcon = { Icon(Icons.Default.Info, null) },
-            placeholder = { Text("3+ years creating premium business websites") },
-            modifier = Modifier.fillMaxWidth().testTag("profile_exp_input"),
-            maxLines = 3,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
-            )
-        )
-
-        Button(
-            onClick = {
-                viewModel.updateProfile(
-                    UserProfile(
-                        fullName = name,
-                        portfolioUrl = portfolio,
-                        skills = skills,
-                        experience = experience
-                    )
-                )
-                keyboardController?.hide()
-            },
-            modifier = Modifier
-                .align(Alignment.End)
-                .testTag("profile_save_btn")
-        ) {
-            Icon(Icons.Default.Check, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Update Profile Info")
-        }
         
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(30.dp))
     }
 }
 
@@ -601,13 +542,13 @@ fun SearchAndDomainBar(
                 FilterChip(
                     selected = searchGigs,
                     onClick = { onCategorySelected("rrr") },
-                    label = { Text("📄 Resumes") },
+                    label = { Text("Resumes") },
                     modifier = Modifier.weight(1f).testTag("select_category_rrr")
                 )
                 FilterChip(
                     selected = !searchGigs,
                     onClick = { onCategorySelected("web") },
-                    label = { Text("👔 Careers") },
+                    label = { Text("Careers") },
                     modifier = Modifier.weight(1f).testTag("select_category_web")
                 )
             }
@@ -693,15 +634,23 @@ fun DetailPane(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    val customProposal = remember(gig, viewModel.userProfile.collectAsStateWithLifecycle().value) {
-        viewModel.generateProposalText(gig)
-    }
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
 
     val fetchedDescs by viewModel.fetchedDescriptions.collectAsStateWithLifecycle()
     val isFetchingMap by viewModel.isFetchingDescription.collectAsStateWithLifecycle()
     
     val realDesc = fetchedDescs[gig.id]
     val isFetching = isFetchingMap[gig.id] ?: false
+
+    val customProposal = remember(gig, userProfile, realDesc) {
+        val template = userProfile.craigslistDescription
+        val desc = realDesc ?: gig.description
+        if (template.isNotBlank()) {
+            "$template\n\n$desc"
+        } else {
+            desc
+        }
+    }
 
     LaunchedEffect(gig.id) {
         viewModel.fetchFullDescriptionIfNeeded(gig)
@@ -772,7 +721,7 @@ fun DetailPane(
                     ) {
                         Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Apply on Craigslist")
+                        Text("Show with craigslist")
                     }
                 }
             }
@@ -783,7 +732,7 @@ fun DetailPane(
         // Body Description
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
-                text = "📰 Position Detail Specification",
+                text = "Position Detail Specification",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
@@ -826,7 +775,7 @@ fun DetailPane(
                         if (realDesc != null) {
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "✔️ Verified original posting details fetched from Craigslist",
+                                text = "Verified original posting details fetched from Craigslist",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -874,7 +823,7 @@ fun DetailPane(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "✍️ Customized Proposal Draft Picker",
+                            text = "Craigslist response",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -907,14 +856,7 @@ fun DetailPane(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Customize your developer name & experiences inside 'My Pitch Profile' tab to instantly update details.",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Surface(
                         color = MaterialTheme.colorScheme.surface,
@@ -1007,7 +949,7 @@ fun FeedErrorPane(
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "🌪️ SearchTempest Multi-Region Alternative:",
+                        text = "SearchTempest Multi-Region Alternative:",
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.primary
@@ -1111,7 +1053,7 @@ fun EmptyListCard(
                 ) {
                     Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("🌪️ Search Nationwide on SearchTempest", fontSize = 12.sp)
+                    Text("Search Nationwide on SearchTempest", fontSize = 12.sp)
                 }
             }
         }

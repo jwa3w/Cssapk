@@ -20,7 +20,8 @@ data class UserProfile(
     val fullName: String = "John Designer",
     val portfolioUrl: String = "https://behance.net/johnportfolio",
     val skills: String = "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress",
-    val experience: String = "3+ years designing clean, fast-loading, responsive business websites"
+    val experience: String = "3+ years designing clean, fast-loading, responsive business websites",
+    val craigslistDescription: String = "Looking for a WordPress developer to rebuild our business website and optimize speed."
 )
 
 class GigViewModel(private val repository: GigRepository) : ViewModel() {
@@ -218,6 +219,48 @@ Hello,
 I saw your posting on Craigslist for "${gig.title}" and would love to discuss how I can help bring your vision to life.
 
 $specificAngle
+
+My Background:
+- ${profile.experience}
+- Core Skills: ${profile.skills}
+
+You can view my recent web designs and client success stories here:
+${profile.portfolioUrl}
+
+I am highly responsive, pay close attention to design details, and can deliver this project on-time and within your budget. Let me know if you would like to jump on a quick call to map out the scope!
+
+Best regards,
+${profile.fullName}
+        """.trimIndent()
+    }
+
+    /**
+     * Synthesizes a customized pitch letter template from an arbitrary pasted Craigslist description
+     */
+    fun generateProposalFromDescription(desc: String): String {
+        val profile = _userProfile.value
+        val lower = desc.lowercase()
+        val isShopify = lower.contains("shopify")
+        val isWordpress = lower.contains("wordpress") || lower.contains("wp")
+        val isReact = lower.contains("react") || lower.contains("nextjs") || lower.contains("next.js") || lower.contains("javascript")
+        val isWebflow = lower.contains("webflow")
+        val isGraphic = lower.contains("graphic") || lower.contains("logo") || lower.contains("branding") || lower.contains("design")
+
+        val specificAngle = when {
+            isShopify -> "I noticed you're looking for Shopify development. I specialize in designing premium, conversion-optimized Shopify storefronts with tailored layouts and fast, mobile-friendly landing pages."
+            isWordpress -> "I noticed you're seeking WordPress assistance. I have extensive experience building robust, custom WordPress templates, implementing Elementor/Gutenberg layouts, and optimizing site speeds."
+            isReact -> "I noticed you're seeking modern web development. I have extensive experience building elegant React and Next.js applications, crafting clean responsive interfaces, and optimizing client-side experiences."
+            isWebflow -> "I noticed you're looking for a Webflow professional. I specialize in building highly responsive Webflow sites, clean interactions, and flawless transitions that bring designs to life."
+            isGraphic -> "I noticed you need creative visual assets & elegant design style. I specialize in crafting professional brand identity layouts, custom graphics, and responsive web aesthetics that represent your brand flawlessly."
+            else -> "I saw your listing and would love to assist you. My focus is on crafting clean, responsive, and performance-oriented layouts that represent brands beautifully."
+        }
+
+        return """
+Hello,
+
+I saw your posting on Craigslist and would love to discuss how I can help bring your vision to life.
+
+${specificAngle}
 
 My Background:
 - ${profile.experience}

@@ -20,7 +20,7 @@ data class CraigslistGig(
 
     // Cleaned title without the location, e.g. "Web Designer (San Francisco)" -> "Web Designer"
     val displayTitle: String by lazy {
-        title
+        title.substringBefore("\n").substringBefore("\r").trim()
     }
 
     // Smart rate/budget extraction from title or description
@@ -79,18 +79,18 @@ object CraigslistHtmlParser {
         val coreSk = if (skills.isEmpty()) "Modern Web Design and General Development Services" else skills.joinToString(", ")
 
         return """
-            🚀 Position Overview:
+            Position Overview:
             Seeking a freelance designer or developer to coordinate on web-oriented digital projects. The core focal point is: "$title".
             
-            🎯 Expected Expert Skillset:
+            Expected Expert Skillset:
             • Core Expertise Required: $coreSk
             
             • Expected Workload: Contract-based freelance milestones.
             
-            📝 Core Deliverables & Application:
+            Core Deliverables & Application:
             Because Craigslist listings may undergo immediate replies or rapid expiration, full application mechanisms, secure client coordinates, responsive telephone lines, or messaging portals are accessible on the original post. 
             
-            Click "Apply on Craigslist" above to connect directly and present your pitch!
+            Click "Show with craigslist" above to connect directly and present your pitch!
         """.trimIndent()
     }
 
