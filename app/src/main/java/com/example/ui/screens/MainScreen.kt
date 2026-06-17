@@ -152,17 +152,6 @@ fun MainScreen(viewModel: GigViewModel) {
                             .fillMaxHeight()
                             .background(MaterialTheme.colorScheme.background)
                     ) {
-                        TabbedHeader(
-                            currentTab = currentTab,
-                            onTabSelected = { 
-                                currentTab = it
-                                // Reset detail if switching tabs
-                                if (it != ActiveTab.Feed) {
-                                    selectedGigForDetail = null
-                                }
-                            }
-                        )
-                        
                         when (currentTab) {
                             ActiveTab.Feed -> {
                                 FeedMainContent(
@@ -172,11 +161,25 @@ fun MainScreen(viewModel: GigViewModel) {
                                     selectedCity = selectedCity,
                                     selectedCategory = selectedCategory,
                                     selectedGigForDetail = selectedGigForDetail,
-                                    onGigClick = { selectedGigForDetail = it }
+                                    onGigClick = { selectedGigForDetail = it },
+                                    onTabSelected = { 
+                                        currentTab = it
+                                        if (it != ActiveTab.Feed) {
+                                            selectedGigForDetail = null
+                                        }
+                                    }
                                 )
                             }
                             ActiveTab.Profile -> {
-                                SettingsMainContent(viewModel = viewModel)
+                                SettingsMainContent(
+                                    viewModel = viewModel,
+                                    onTabSelected = { 
+                                        currentTab = it
+                                        if (it != ActiveTab.Feed) {
+                                            selectedGigForDetail = null
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
@@ -222,73 +225,55 @@ fun MainScreen(viewModel: GigViewModel) {
                     }
                 }
             } else {
-                // Mobile: Normal Stack transitions
-                Scaffold(
-                    bottomBar = {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 4.dp
-                        ) {
-                            NavigationBarItem(
-                                selected = currentTab == ActiveTab.Feed,
-                                onClick = { 
-                                    currentTab = ActiveTab.Feed
-                                    selectedGigForDetail = null
-                                },
-                                label = { Text("Search Gigs") },
-                                icon = { Icon(Icons.Default.Search, contentDescription = "Browse") },
-                                modifier = Modifier.testTag("nav_tab_feed")
-                            )
-                            NavigationBarItem(
-                                selected = currentTab == ActiveTab.Profile,
-                                onClick = { 
-                                    currentTab = ActiveTab.Profile
-                                    selectedGigForDetail = null
-                                },
-                                label = { Text("Settings") },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                                modifier = Modifier.testTag("nav_tab_settings")
-                            )
-                        }
-                    }
-                ) { innerPadding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ) {
-                        AnimatedContent(
-                            targetState = Pair(currentTab, selectedGigForDetail),
-                            transitionSpec = {
-                                slideInHorizontally { width -> width } + fadeIn() togetherWith
-                                        slideOutHorizontally { width -> -width } + fadeOut()
-                            },
-                            label = "screen_transitions"
-                        ) { (tab, detailGig) ->
-                            if (detailGig != null) {
-                                key(detailGig.id) {
-                                    DetailPane(
-                                        gig = detailGig,
+                // Mobile: Normal Stack transitions on Box (no sticky bottom bar navigation)
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    AnimatedContent(
+                        targetState = Pair(currentTab, selectedGigForDetail),
+                        transitionSpec = {
+                            slideInHorizontally { width -> width } + fadeIn() togetherWith
+                                    slideOutHorizontally { width -> -width } + fadeOut()
+                        },
+                        label = "screen_transitions"
+                    ) { (tab, detailGig) ->
+                        if (detailGig != null) {
+                            key(detailGig.id) {
+                                DetailPane(
+                                    gig = detailGig,
+                                    viewModel = viewModel,
+                                    onCloseClicked = { selectedGigForDetail = null }
+                                )
+                            }
+                        } else {
+                            when (tab) {
+                                ActiveTab.Feed -> {
+                                    FeedMainContent(
                                         viewModel = viewModel,
-                                        onCloseClicked = { selectedGigForDetail = null }
+                                        uiState = uiState,
+                                        searchQuery = searchQuery,
+                                        selectedCity = selectedCity,
+                                        selectedCategory = selectedCategory,
+                                        selectedGigForDetail = null,
+                                        onGigClick = { selectedGigForDetail = it },
+                                        onTabSelected = { 
+                                            currentTab = it
+                                            if (it != ActiveTab.Feed) {
+                                                selectedGigForDetail = null
+                                            }
+                                        }
                                     )
                                 }
-                            } else {
-                                when (tab) {
-                                    ActiveTab.Feed -> {
-                                        FeedMainContent(
-                                            viewModel = viewModel,
-                                            uiState = uiState,
-                                            searchQuery = searchQuery,
-                                            selectedCity = selectedCity,
-                                            selectedCategory = selectedCategory,
-                                            selectedGigForDetail = null,
-                                            onGigClick = { selectedGigForDetail = it }
-                                        )
-                                    }
-                                    ActiveTab.Profile -> {
-                                        SettingsMainContent(viewModel = viewModel)
-                                    }
+                                ActiveTab.Profile -> {
+                                    SettingsMainContent(
+                                        viewModel = viewModel,
+                                        onTabSelected = { 
+                                            currentTab = it
+                                            if (it != ActiveTab.Feed) {
+                                                selectedGigForDetail = null
+                                            }
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -315,7 +300,7 @@ fun TabbedHeader(
         Tab(
             selected = currentTab == ActiveTab.Feed,
             onClick = { onTabSelected(ActiveTab.Feed) },
-            text = { Text("Search Gigs", fontWeight = FontWeight.Bold) },
+            text = { Text("Show Craigslist", fontWeight = FontWeight.Bold) },
             icon = { Icon(Icons.Default.Search, contentDescription = null) }
         )
         Tab(
@@ -335,31 +320,57 @@ fun FeedMainContent(
     selectedCity: String,
     selectedCategory: String,
     selectedGigForDetail: CraigslistGig?,
-    onGigClick: (CraigslistGig) -> Unit
+    onGigClick: (CraigslistGig) -> Unit,
+    onTabSelected: (ActiveTab) -> Unit
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Search & Category Segment
-        SearchAndDomainBar(
-            searchQuery = searchQuery,
-            onQueryChanged = { viewModel.updateSearchQuery(it) },
-            selectedCategory = selectedCategory,
-            onCategorySelected = { viewModel.selectCategory(it) }
-        )
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("gigs_list"),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Render TabbedHeader here inside LazyColumn so that it scrolls out of view!
+        item {
+            TabbedHeader(
+                currentTab = ActiveTab.Feed,
+                onTabSelected = onTabSelected
+            )
+        }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        // Search & Category Segment inside scroll view to disable sticky behavior
+        item {
+            SearchAndDomainBar(
+                searchQuery = searchQuery,
+                onQueryChanged = { viewModel.updateSearchQuery(it) },
+                selectedCategory = selectedCategory,
+                onCategorySelected = { viewModel.selectCategory(it) }
+            )
+        }
+
+        item {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        }
 
         // Listing Feed lists
-        Box(modifier = Modifier.weight(1f)) {
-            when (uiState) {
-                is GigsUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        when (uiState) {
+            is GigsUiState.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
-                is GigsUiState.Error -> {
+            }
+            is GigsUiState.Error -> {
+                item {
                     FeedErrorPane(
                         message = uiState.message,
                         attemptedUrl = uiState.attemptedUrl,
@@ -368,22 +379,22 @@ fun FeedMainContent(
                         onRetryClick = { viewModel.fetchListings() }
                     )
                 }
-                is GigsUiState.Success -> {
-                    // Filter list dynamically based on search bar
-                    val filteredGigs = remember(uiState.list, searchQuery) {
-                        if (searchQuery.trim().isEmpty()) {
-                            uiState.list
-                        } else {
-                            val lower = searchQuery.trim().lowercase()
-                            uiState.list.filter { gig ->
-                                gig.title.lowercase().contains(lower) ||
-                                gig.description.lowercase().contains(lower) ||
-                                gig.tags.any { it.lowercase().contains(lower) }
-                            }
-                        }
+            }
+            is GigsUiState.Success -> {
+                // Filter list dynamically based on search bar
+                val filteredGigs = if (searchQuery.trim().isEmpty()) {
+                    uiState.list
+                } else {
+                    val lower = searchQuery.trim().lowercase()
+                    uiState.list.filter { gig ->
+                        gig.title.lowercase().contains(lower) ||
+                        gig.description.lowercase().contains(lower) ||
+                        gig.tags.any { it.lowercase().contains(lower) }
                     }
+                }
 
-                    if (filteredGigs.isEmpty()) {
+                if (filteredGigs.isEmpty()) {
+                    item {
                         EmptyListCard(
                             title = if (selectedCategory == "rrr") "No Resumes Found" else "No Gigs Found",
                             subtitle = "Try searching for a different keyword, category, or clear city filters.",
@@ -403,26 +414,25 @@ fun FeedMainContent(
                                 }
                             }
                         )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag("gigs_list"),
-                            contentPadding = PaddingValues(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(filteredGigs, key = { it.id }) { gig ->
-                                GigListingItemCard(
-                                    gig = gig,
-                                    isSelected = selectedGigForDetail?.id == gig.id,
-                                    onItemClick = { onGigClick(gig) }
-                                )
-                            }
-                        }
+                    }
+                } else {
+                    items(filteredGigs, key = { it.id }) { gig ->
+                        GigListingItemCard(
+                            gig = gig,
+                            isSelected = selectedGigForDetail?.id == gig.id,
+                            onItemClick = { onGigClick(gig) }
+                        )
                     }
                 }
-                GigsUiState.Idle -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            }
+            GigsUiState.Idle -> {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text("Search for design gigs to begin.", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
@@ -434,7 +444,10 @@ fun FeedMainContent(
 // BookmarksMainContent removed
 
 @Composable
-fun SettingsMainContent(viewModel: GigViewModel) {
+fun SettingsMainContent(
+    viewModel: GigViewModel,
+    onTabSelected: (ActiveTab) -> Unit
+) {
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     var craigslistDesc by remember(userProfile.craigslistDescription) { mutableStateOf(userProfile.craigslistDescription) }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -448,6 +461,11 @@ fun SettingsMainContent(viewModel: GigViewModel) {
             .testTag("settings_section"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        TabbedHeader(
+            currentTab = ActiveTab.Profile,
+            onTabSelected = onTabSelected
+        )
+
         OutlinedTextField(
             value = craigslistDesc,
             onValueChange = { 
@@ -854,26 +872,6 @@ fun DetailPane(
                                 Icon(Icons.Default.Share, contentDescription = "Share text", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        Text(
-                            text = customProposal,
-                            fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 16.sp,
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .testTag("proposal_draft_text")
-                        )
                     }
                 }
             }
