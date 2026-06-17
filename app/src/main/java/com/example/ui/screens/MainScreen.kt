@@ -330,8 +330,8 @@ fun FeedMainContent(
         modifier = Modifier
             .fillMaxSize()
             .testTag("gigs_list"),
-        contentPadding = PaddingValues(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Render TabbedHeader here inside LazyColumn so that it scrolls out of view!
         item {
@@ -474,7 +474,6 @@ fun SettingsMainContent(
                 viewModel.updateProfile(userProfile.copy(craigslistDescription = it))
             },
             label = { Text("Craigslist Description Template") },
-            placeholder = { Text("Paste candidate requirements / role description here (e.g. Seeking a WordPress developer with SEO knowledge to design and launch...") },
             minLines = 6,
             maxLines = 12,
             modifier = Modifier
@@ -518,13 +517,12 @@ fun SearchAndDomainBar(
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Search Input text field
             OutlinedTextField(
                 value = searchQuery,
@@ -532,7 +530,6 @@ fun SearchAndDomainBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("feed_search_input"),
-                placeholder = { Text("Search title or keywords (e.g. Figma, WordPress)") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
@@ -613,13 +610,13 @@ fun GigListingItemCard(
             if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
         )
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Card top info header holding only the date badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
                     .background(MaterialTheme.colorScheme.secondaryContainer)
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = dateText,
@@ -767,7 +764,7 @@ fun DetailPane(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(vertical = 12.dp)
+                            modifier = Modifier.padding(vertical = 16.dp)
                         ) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
@@ -803,7 +800,7 @@ fun DetailPane(
                             Row(
                                 modifier = Modifier
                                     .clickable { viewModel.fetchFullDescriptionIfNeeded(gig) }
-                                    .padding(vertical = 4.dp),
+                                    .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
@@ -895,7 +892,7 @@ fun FeedErrorPane(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -930,7 +927,7 @@ fun FeedErrorPane(
                 modifier = Modifier.fillMaxWidth(),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Attempted Feed Target URL:",
                         fontWeight = FontWeight.Bold,
@@ -1017,7 +1014,7 @@ fun EmptyListCard(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
