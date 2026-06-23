@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -62,6 +63,15 @@ fun MainScreen(viewModel: GigViewModel) {
     // UI Local state tracking
     var currentTab by remember { mutableStateOf<ActiveTab>(ActiveTab.Feed) }
     var selectedGigForDetail by remember { mutableStateOf<CraigslistGig?>(null) }
+    
+    // Back gesture/button handling
+    BackHandler(enabled = selectedGigForDetail != null || currentTab != ActiveTab.Feed) {
+        if (selectedGigForDetail != null) {
+            selectedGigForDetail = null
+        } else if (currentTab != ActiveTab.Feed) {
+            currentTab = ActiveTab.Feed
+        }
+    }
     
     // Screen classification: Responsive layout check (width class)
     val context = LocalContext.current
@@ -750,13 +760,6 @@ fun DetailPane(
 
         // Body Description
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(
-                text = "Position Detail Specification",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(10.dp))
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
@@ -791,15 +794,7 @@ fun DetailPane(
                             lineHeight = 22.sp
                         )
 
-                        if (realDesc != null) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                text = "Verified original posting details fetched from Craigslist",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else if (!isFetching) {
+                        if (!isFetching && realDesc == null) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Row(
                                 modifier = Modifier
