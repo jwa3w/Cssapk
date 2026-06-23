@@ -30,8 +30,8 @@ class GigViewModel(private val repository: GigRepository) : ViewModel() {
     private val _selectedCity = MutableStateFlow("all")
     val selectedCity = _selectedCity.asStateFlow()
 
-    // Selected category, defaulting to "rrr" (Resumes)
-    private val _selectedCategory = MutableStateFlow("rrr") 
+    // Selected category, defaulting to "sof" (Programmer Develop)
+    private val _selectedCategory = MutableStateFlow("sof") 
     val selectedCategory = _selectedCategory.asStateFlow()
 
     // Query for text searches in title / description

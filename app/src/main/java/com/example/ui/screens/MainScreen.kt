@@ -404,7 +404,7 @@ fun FeedMainContent(
                                 } else {
                                     searchQuery.trim()
                                 }
-                                val subcat = if (selectedCategory == "rrr") "rrr" else "web"
+                                val subcat = selectedCategory
                                 val url = "https://www.searchtempest.com/search?search_string=${Uri.encode(q)}&category=8&subcat=$subcat"
                                 try {
                                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
@@ -548,24 +548,28 @@ fun SearchAndDomainBar(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Sub category domain selection tabs
+            // Sub category domain selection tabs (Programmer Develop, Web Design, Computer Gig, and Resumes)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val searchGigs = selectedCategory == "rrr"
-                FilterChip(
-                    selected = searchGigs,
-                    onClick = { onCategorySelected("rrr") },
-                    label = { Text("Resumes") },
-                    modifier = Modifier.weight(1f).testTag("select_category_rrr")
+                val categories = listOf(
+                    Triple("sof", "Programmer Develop", "select_category_sof"),
+                    Triple("web", "Web Design", "select_category_web"),
+                    Triple("cpg", "Computer Gig", "select_category_cpg"),
+                    Triple("rrr", "Resumes", "select_category_rrr")
                 )
-                FilterChip(
-                    selected = !searchGigs,
-                    onClick = { onCategorySelected("web") },
-                    label = { Text("Careers") },
-                    modifier = Modifier.weight(1f).testTag("select_category_web")
-                )
+                categories.forEach { (catId, label, tag) ->
+                    val isSelected = selectedCategory == catId
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onCategorySelected(catId) },
+                        label = { Text(label, fontSize = 12.sp) },
+                        modifier = Modifier.testTag(tag)
+                    )
+                }
             }
         }
     }
@@ -962,7 +966,7 @@ fun FeedErrorPane(
                     } else {
                         searchQuery.trim()
                     }
-                    val subcat = if (selectedCategory == "rrr") "rrr" else "web"
+                    val subcat = selectedCategory
                     val searchTempestUrl = "https://www.searchtempest.com/search?search_string=${Uri.encode(q)}&category=8&subcat=$subcat"
 
                     Button(
