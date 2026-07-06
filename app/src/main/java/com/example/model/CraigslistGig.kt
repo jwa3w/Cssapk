@@ -101,77 +101,102 @@ object CraigslistHtmlParser {
         val gigs = mutableListOf<CraigslistGig>()
         if (html.isEmpty()) return gigs
 
-        // Locate all lists of search results (modern: cl-search-result, older: result-row)
-        val liRegex = Regex("<li[^>]+?class=\"[^\"]*?(?:cl-search-result|result-row)[^\"]*?\"[^>]*?>(.*?)</li>", RegexOption.DOT_MATCHES_ALL)
+        // Locate all lists of search results (modern: cl-static-search-result, cl-search-result, result-row)
+        val liRegex = Regex("<li[^>]+?class=\"[^\"]*?(?:cl-static-search-result|cl-search-result|result-row)[^\"]*?\"[^>]*?>(.*?)</li>", RegexOption.DOT_MATCHES_ALL)
         val matches = liRegex.findAll(html).toList()
 
         for (match in matches) {
             val content = match.groupValues[1]
 
-            // Extract PID/ID if present
+            // 1. Extract Link (href)
+            // Look for any link containing /d/ or /view/d/
+            val hrefRegex = Regex("""href="([^"]*?(?:/d/|/view/d/)[^"]*?)"""")
+            val linkMatch = hrefRegex.find(content) ?: hrefRegex.find(match.value)
+            if (linkMatch == null) continue
+            var link = linkMatch.groupValues[1].trim()
+
+            // Ensure link is fully qualified
+            if (link.startsWith("/")) {
+                link = "https://$defaultCity.craigslist.org$link"
+            } else if (link.startsWith("www.")) {
+                link = "https://$link"
+            }
+
+            // 2. Extract Title
+            // Try different title extraction patterns in order of priority:
+            // a) <div class="title">...</div>
+            // b) parent <li> title attribute
+            // c) standard class="titlestring" or class="hdrlnk" anchor
+            // d) first anchor text
+            val titleDivRegex = Regex("""<div[^>]+?class="[^\"]*?title[^\"]*?"[^>]*?>(.*?)</div>""", RegexOption.DOT_MATCHES_ALL)
+            val titleMatch = titleDivRegex.find(content)
+            
+            var rawTitle = ""
+            if (titleMatch != null) {
+                rawTitle = titleMatch.groupValues[1].trim()
+            } else {
+                val liTitleRegex = Regex("""<li[^>]+?title="([^"]+?)"""")
+                val liTitleMatch = liTitleRegex.find(match.value)
+                if (liTitleMatch != null) {
+                    rawTitle = liTitleMatch.groupValues[1].trim()
+                } else {
+                    val titleHrefRegex = Regex("""<a[^>]+?class="[^\"]*?(?:titlestring|hdrlnk)[^\"]*?"[^>]*?>(.*?)</a>""", RegexOption.DOT_MATCHES_ALL)
+                    val oldTitleMatch = titleHrefRegex.find(content)
+                    if (oldTitleMatch != null) {
+                        rawTitle = oldTitleMatch.groupValues[1].trim()
+                    } else {
+                        val firstAnchorRegex = Regex("""<a[^>]*?>(.*?)</a>""", RegexOption.DOT_MATCHES_ALL)
+                        val anchorMatch = firstAnchorRegex.find(content)
+                        if (anchorMatch != null) {
+                            rawTitle = anchorMatch.groupValues[1].trim()
+                        }
+                    }
+                }
+            }
+
+            val title = htmlDecode(rawTitle.replace(Regex("<[^>]*>"), "")).trim()
+            if (title.isEmpty()) continue
+
+            // 3. Extract ID
             val pidRegex = Regex("data-pid=\"(\\d+)\"")
             var id = pidRegex.find(match.value)?.groupValues?.get(1)?.trim() ?: ""
-
-            // Extract Title and Link (anchors containing "titlestring", "hdrlnk", or standard links with /d/ in href)
-            val titleHrefRegex = Regex("<a[^>]+?class=\"[^\"]*?(?:titlestring|hdrlnk)[^\"]*?\"[^+]+?href=\"([^\"]+?)\"[^>]*?>(.*?)</a>", RegexOption.DOT_MATCHES_ALL)
-            var titleHrefMatch = titleHrefRegex.find(content)
-
-            if (titleHrefMatch == null) {
-                // Try finding any link with "/d/" (which is Craigslist's posting detail path)
-                val dLinkRegex = Regex("<a[^>]+?href=\"([^\"]+?/d/[^\"]+?)\"[^>]*?>(.*?)</a>", RegexOption.DOT_MATCHES_ALL)
-                titleHrefMatch = dLinkRegex.find(content)
+            if (id.isEmpty()) {
+                val lastSegment = link.substringAfterLast("/")
+                id = if (lastSegment.isNotEmpty() && lastSegment != "index.html") lastSegment else link
             }
 
-            if (titleHrefMatch != null) {
-                var link = titleHrefMatch.groupValues[1].trim()
-                val rawTitle = titleHrefMatch.groupValues[2].trim().replace(Regex("<[^>]*>"), "")
-                val title = htmlDecode(rawTitle)
+            // 4. Extract Location
+            val locRegex = Regex("""<(?:div|span)[^>]+?class="[^\"]*?(?:location|result-hood)[^\"]*?"[^>]*?>(.*?)</(?:div|span)>""", RegexOption.DOT_MATCHES_ALL)
+            val location = locRegex.find(content)?.groupValues?.get(1)
+                ?.trim()
+                ?.replace(Regex("[()\\s]+"), " ")
+                ?.trim() ?: ""
 
-                // Ensure link is fully qualified
-                if (link.startsWith("/")) {
-                    link = "https://$defaultCity.craigslist.org$link"
-                }
+            // 5. Extract Price
+            val prRegex = Regex("""<(?:div|span)[^>]+?class="[^\"]*?price[^\"]*?"[^>]*?>(.*?)</(?:div|span)>""", RegexOption.DOT_MATCHES_ALL)
+            val price = prRegex.find(content)?.groupValues?.get(1)?.trim() ?: ""
 
-                if (id.isEmpty()) {
-                    id = link // Fallback to URL if pid is missing
-                }
+            // 6. Extract Date
+            val dtRegex = Regex("""<(?:span|time)[^>]+?class="[^\"]*?date[^\"]*?"[^>]*?>(.*?)</(?:span|time)>""")
+            val dateStr = dtRegex.find(content)?.groupValues?.get(1)?.trim() ?: "Active"
 
-                // Extract location if present
-                // Modern: <div class="location">Chicago</div> or <span class="result-hood"> (Chicago)</span>
-                val locRegex = Regex("<(?:div|span)[^>]+?class=\"[^\"]*?(?:location|result-hood)[^\"]*?\"[^>]*?>(.*?)</(?:div|span)>", RegexOption.DOT_MATCHES_ALL)
-                val location = locRegex.find(content)?.groupValues?.get(1)
-                    ?.trim()
-                    ?.replace(Regex("[()\\s]+"), " ")
-                    ?.trim() ?: ""
+            val description = generateDynamicDescription(title, location, defaultCity, price)
 
-                // Extract price/pay if present
-                val prRegex = Regex("<span[^>]+?class=\"[^\"]*?price[^\"]*?\"[^>]*?>(.*?)</span>")
-                val price = prRegex.find(content)?.groupValues?.get(1)?.trim() ?: ""
-
-                // Extract date if present
-                val dtRegex = Regex("<(?:span|time)[^>]+?class=\"[^\"]*?date[^\"]*?\"[^>]*?>(.*?)</(?:span|time)>")
-                val dateStr = dtRegex.find(content)?.groupValues?.get(1)?.trim() ?: "Active"
-
-                val finalTitle = title
-
-                val description = generateDynamicDescription(title, location, defaultCity, price)
-
-                gigs.add(
-                    CraigslistGig(
-                        id = id,
-                        title = finalTitle,
-                        link = link,
-                        description = description,
-                        date = "2026-06-14T12:00:00-07:00",
-                        city = defaultCity
-                    )
+            gigs.add(
+                CraigslistGig(
+                    id = id,
+                    title = title,
+                    link = link,
+                    description = description,
+                    date = "2026-06-14T12:00:00-07:00",
+                    city = defaultCity
                 )
-            }
+            )
         }
 
-        // Ultimate fallback: If list is empty, scrape any link with "/d/" to jobs/gigs
+        // Ultimate fallback: If list is empty, scrape any link with "/d/" or "/view/d/" to jobs/gigs
         if (gigs.isEmpty()) {
-            val ultimateRegex = Regex("<a[^>]+?href=\"([^\"]+?/d/[^\"]+?\\.html)\"[^>]*?>(.*?)</a>", RegexOption.DOT_MATCHES_ALL)
+            val ultimateRegex = Regex("""<a[^>]+?href="([^"]+?/(?:view/)?d/[^"]+?)"[^>]*?>(.*?)</a>""", RegexOption.DOT_MATCHES_ALL)
             ultimateRegex.findAll(html).forEachIndexed { index, linkMatch ->
                 var link = linkMatch.groupValues[1].trim()
                 val rawTitle = linkMatch.groupValues[2].trim().replace(Regex("<[^>]*>"), "")
