@@ -21,10 +21,15 @@ data class UserProfile(
     val portfolioUrl: String = "https://behance.net/johnportfolio",
     val skills: String = "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress",
     val experience: String = "3+ years designing clean, fast-loading, responsive business websites",
-    val craigslistDescription: String = "Looking for a WordPress developer to rebuild our business website and optimize speed."
+    val craigslistDescription: String = "Looking for a WordPress developer to rebuild our business website and optimize speed.",
+    val craigslistEmail: String = "",
+    val craigslistPassword: String = ""
 )
 
-class GigViewModel(private val repository: GigRepository) : ViewModel() {
+class GigViewModel(
+    private val repository: GigRepository,
+    private val sharedPrefs: android.content.SharedPreferences? = null
+) : ViewModel() {
 
     // Selected city indicator
     private val _selectedCity = MutableStateFlow("all")
@@ -55,6 +60,25 @@ class GigViewModel(private val repository: GigRepository) : ViewModel() {
     val userProfile = _userProfile.asStateFlow()
 
     init {
+        sharedPrefs?.let { prefs ->
+            val fullName = prefs.getString("fullName", "John Designer") ?: "John Designer"
+            val portfolioUrl = prefs.getString("portfolioUrl", "https://behance.net/johnportfolio") ?: "https://behance.net/johnportfolio"
+            val skills = prefs.getString("skills", "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress") ?: "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress"
+            val experience = prefs.getString("experience", "3+ years designing clean, fast-loading, responsive business websites") ?: "3+ years designing clean, fast-loading, responsive business websites"
+            val craigslistDescription = prefs.getString("craigslistDescription", "Looking for a WordPress developer to rebuild our business website and optimize speed.") ?: "Looking for a WordPress developer to rebuild our business website and optimize speed."
+            val craigslistEmail = prefs.getString("craigslistEmail", "") ?: ""
+            val craigslistPassword = prefs.getString("craigslistPassword", "") ?: ""
+            
+            _userProfile.value = UserProfile(
+                fullName = fullName,
+                portfolioUrl = portfolioUrl,
+                skills = skills,
+                experience = experience,
+                craigslistDescription = craigslistDescription,
+                craigslistEmail = craigslistEmail,
+                craigslistPassword = craigslistPassword
+            )
+        }
         // Trigger initial fetch
         fetchListings()
     }
@@ -78,6 +102,16 @@ class GigViewModel(private val repository: GigRepository) : ViewModel() {
 
     fun updateProfile(profile: UserProfile) {
         _userProfile.value = profile
+        sharedPrefs?.edit()?.apply {
+            putString("fullName", profile.fullName)
+            putString("portfolioUrl", profile.portfolioUrl)
+            putString("skills", profile.skills)
+            putString("experience", profile.experience)
+            putString("craigslistDescription", profile.craigslistDescription)
+            putString("craigslistEmail", profile.craigslistEmail)
+            putString("craigslistPassword", profile.craigslistPassword)
+            apply()
+        }
     }
 
     private fun getPostalForCity(city: String): String {

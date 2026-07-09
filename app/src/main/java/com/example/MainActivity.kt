@@ -32,8 +32,9 @@ class MainActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(GigViewModel::class.java)) {
+                    val sharedPrefs = getSharedPreferences("user_profile_prefs", android.content.Context.MODE_PRIVATE)
                     @Suppress("UNCHECKED_CAST")
-                    return GigViewModel(repository) as T
+                    return GigViewModel(repository, sharedPrefs) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }

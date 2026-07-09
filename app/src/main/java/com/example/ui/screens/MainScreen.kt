@@ -48,6 +48,7 @@ import com.example.ui.viewmodel.UserProfile
 // Simple navigation states
 sealed class ActiveTab {
     object Feed : ActiveTab()
+    object CreatePost : ActiveTab()
     object Profile : ActiveTab()
 }
 
@@ -180,6 +181,17 @@ fun MainScreen(viewModel: GigViewModel) {
                                     }
                                 )
                             }
+                            ActiveTab.CreatePost -> {
+                                CreatePostMainContent(
+                                    viewModel = viewModel,
+                                    onTabSelected = { 
+                                        currentTab = it
+                                        if (it != ActiveTab.Feed) {
+                                            selectedGigForDetail = null
+                                        }
+                                    }
+                                )
+                            }
                             ActiveTab.Profile -> {
                                 SettingsMainContent(
                                     viewModel = viewModel,
@@ -274,6 +286,17 @@ fun MainScreen(viewModel: GigViewModel) {
                                         }
                                     )
                                 }
+                                ActiveTab.CreatePost -> {
+                                    CreatePostMainContent(
+                                        viewModel = viewModel,
+                                        onTabSelected = { 
+                                            currentTab = it
+                                            if (it != ActiveTab.Feed) {
+                                                selectedGigForDetail = null
+                                            }
+                                        }
+                                    )
+                                }
                                 ActiveTab.Profile -> {
                                     SettingsMainContent(
                                         viewModel = viewModel,
@@ -302,7 +325,8 @@ fun TabbedHeader(
     TabRow(
         selectedTabIndex = when (currentTab) {
             ActiveTab.Feed -> 0
-            ActiveTab.Profile -> 1
+            ActiveTab.CreatePost -> 1
+            ActiveTab.Profile -> 2
         },
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.primary
@@ -312,6 +336,12 @@ fun TabbedHeader(
             onClick = { onTabSelected(ActiveTab.Feed) },
             text = { Text("Show Craigslist", fontWeight = FontWeight.Bold) },
             icon = { Icon(Icons.Default.Search, contentDescription = null) }
+        )
+        Tab(
+            selected = currentTab == ActiveTab.CreatePost,
+            onClick = { onTabSelected(ActiveTab.CreatePost) },
+            text = { Text("Post Resume", fontWeight = FontWeight.Bold) },
+            icon = { Icon(Icons.Default.AddCircle, contentDescription = null) }
         )
         Tab(
             selected = currentTab == ActiveTab.Profile,
@@ -476,6 +506,86 @@ fun SettingsMainContent(
             onTabSelected = onTabSelected
         )
 
+        // Craigslist Credentials Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Craigslist Account Credentials",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = "Provide your Craigslist email and password to enable automated secure login during posting.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                var clEmail by remember(userProfile.craigslistEmail) { mutableStateOf(userProfile.craigslistEmail) }
+                var clPassword by remember(userProfile.craigslistPassword) { mutableStateOf(userProfile.craigslistPassword) }
+                var showPassword by remember { mutableStateOf(false) }
+
+                OutlinedTextField(
+                    value = clEmail,
+                    onValueChange = { 
+                        clEmail = it
+                        viewModel.updateProfile(userProfile.copy(craigslistEmail = it))
+                    },
+                    label = { Text("Craigslist Email / Username") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("settings_cl_email_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+
+                OutlinedTextField(
+                    value = clPassword,
+                    onValueChange = { 
+                        clPassword = it
+                        viewModel.updateProfile(userProfile.copy(craigslistPassword = it))
+                    },
+                    label = { Text("Craigslist Password") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("settings_cl_password_input"),
+                    visualTransformation = if (showPassword) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = if (showPassword) "Hide password" else "Show password"
+                            )
+                        }
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+            }
+        }
+
         OutlinedTextField(
             value = craigslistDesc,
             onValueChange = { 
@@ -503,14 +613,14 @@ fun SettingsMainContent(
                 onClick = {
                     viewModel.updateProfile(userProfile.copy(craigslistDescription = craigslistDesc))
                     keyboardController?.hide()
-                    Toast.makeText(context, "Settings saved!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "All settings saved successfully!", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier.testTag("settings_save_btn"),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Icon(Icons.Default.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Template Setting")
+                Text("Save Settings")
             }
         }
         
