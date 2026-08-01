@@ -49,52 +49,40 @@ fun CreatePostMainContent(
 
     val initialCity = if (selectedCity == "all" || selectedCity.isBlank()) "sfbay" else selectedCity
 
-    // Posting form states
-    var title by remember { mutableStateOf("Experienced Web Designer & Frontend Developer - Available immediately") }
-    var cityCode by remember { mutableStateOf(initialCity) }
-    var neighborhood by remember { mutableStateOf("") }
-    var postalCode by remember { mutableStateOf("") }
+    // Posting form states from persistent ViewModel
+    val title by viewModel.resumeTitle.collectAsStateWithLifecycle()
+    val resumeCityCode by viewModel.resumeCityCode.collectAsStateWithLifecycle()
+    val cityCode = resumeCityCode.ifBlank { initialCity }
+    val neighborhood by viewModel.resumeNeighborhood.collectAsStateWithLifecycle()
+    val postalCode by viewModel.resumePostalCode.collectAsStateWithLifecycle()
+    val postingBody by viewModel.resumeBody.collectAsStateWithLifecycle()
+
     var contactName by remember { mutableStateOf(userProfile.fullName) }
     var contactEmail by remember { mutableStateOf("abazhgin1@gmail.com") }
     var contactPhone by remember { mutableStateOf("") }
-    var postType by remember { mutableStateOf("resume") } // "resume", "service", "gig"
-    var postingBody by remember { mutableStateOf("") }
+    val postType = "resume"
 
     // Dropdown visibility states
     var showCityDropdown by remember { mutableStateOf(false) }
 
     // Initialize posting body from user profile
     LaunchedEffect(userProfile) {
-        if (postingBody.isEmpty()) {
-            postingBody = """
-                Available for Projects & Contracts: Custom Web Design & Development
-
-                Hello, I am ${userProfile.fullName}. I build clean, modern, and high-performance websites tailored to your business goals.
-
-                🚀 Core Skills:
-                ${userProfile.skills}
-
-                💼 Experience:
-                ${userProfile.experience}
-
-                🌐 Portfolio & Samples:
-                ${userProfile.portfolioUrl}
-
-                About me:
-                ${userProfile.craigslistDescription}
-
-                Please feel free to reply directly or call/text me to discuss your project!
-            """.trimIndent()
-        }
         if (contactName.isEmpty()) {
             contactName = userProfile.fullName
         }
     }
 
-    // Auto-update postal code when city changes
+    // Auto-initialize if empty
     LaunchedEffect(cityCode) {
-        postalCode = getPostalForCityCode(cityCode)
-        neighborhood = getNeighborhoodForCityCode(cityCode)
+        if (resumeCityCode.isBlank()) {
+            viewModel.updateResumeCityCode(cityCode)
+        }
+        if (postalCode.isBlank()) {
+            viewModel.updateResumePostalCode(getPostalForCityCode(cityCode))
+        }
+        if (neighborhood.isBlank()) {
+            viewModel.updateResumeNeighborhood(getNeighborhoodForCityCode(cityCode))
+        }
     }
 
     // WebView active state
@@ -433,41 +421,10 @@ fun CreatePostMainContent(
                 }
             }
 
-            // Posting Type row selection
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Post Category Type",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        "resume" to "Job Wanted / Resume",
-                        "service" to "Service Offered",
-                        "gig" to "Gig Offered"
-                    ).forEach { (typeId, label) ->
-                        val isSelected = postType == typeId
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { postType = typeId },
-                            label = { Text(label) },
-                            leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                            } else null,
-                            modifier = Modifier.testTag("post_type_chip_$typeId")
-                        )
-                    }
-                }
-            }
-
             // Title Field
             OutlinedTextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = { viewModel.updateResumeTitle(it) },
                 label = { Text("Posting Title") },
                 singleLine = true,
                 modifier = Modifier
@@ -514,7 +471,9 @@ fun CreatePostMainContent(
                             DropdownMenuItem(
                                 text = { Text(name) },
                                 onClick = {
-                                    cityCode = code
+                                    viewModel.updateResumeCityCode(code)
+                                    viewModel.updateResumePostalCode(getPostalForCityCode(code))
+                                    viewModel.updateResumeNeighborhood(getNeighborhoodForCityCode(code))
                                     showCityDropdown = false
                                 }
                             )
@@ -525,7 +484,7 @@ fun CreatePostMainContent(
                 // Postal code input
                 OutlinedTextField(
                     value = postalCode,
-                    onValueChange = { postalCode = it },
+                    onValueChange = { viewModel.updateResumePostalCode(it) },
                     label = { Text("Postal Code") },
                     singleLine = true,
                     modifier = Modifier
@@ -542,7 +501,7 @@ fun CreatePostMainContent(
             // Neighborhood / Location input
             OutlinedTextField(
                 value = neighborhood,
-                onValueChange = { neighborhood = it },
+                onValueChange = { viewModel.updateResumeNeighborhood(it) },
                 label = { Text("Specific Location / Neighborhood") },
                 singleLine = true,
                 modifier = Modifier
@@ -555,63 +514,10 @@ fun CreatePostMainContent(
                 )
             )
 
-            // Contact Info section header
-            Text(
-                text = "Contact Details (Craigslist Secure Relay is recommended)",
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            // Contact details inputs (Email, Phone, Name)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = contactName,
-                    onValueChange = { contactName = it },
-                    label = { Text("Contact Name") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
-                )
-
-                OutlinedTextField(
-                    value = contactPhone,
-                    onValueChange = { contactPhone = it },
-                    label = { Text("Phone (Optional)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
-                )
-            }
-
-            OutlinedTextField(
-                value = contactEmail,
-                onValueChange = { contactEmail = it },
-                label = { Text("Contact Email") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                )
-            )
-
             // Posting Body / Resume text field
             OutlinedTextField(
                 value = postingBody,
-                onValueChange = { postingBody = it },
+                onValueChange = { viewModel.updateResumeBody(it) },
                 label = { Text("Posting Description (Resume / Services / Pitch Body)") },
                 minLines = 8,
                 maxLines = 16,
@@ -679,7 +585,7 @@ fun CreatePostMainContent(
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Open & Login to Craigslist Account", fontSize = 12.sp)
+                        Text("Show Craigslist user", fontSize = 12.sp)
                     }
                 }
             }
@@ -689,8 +595,6 @@ fun CreatePostMainContent(
                 onClick = {
                     if (title.isBlank()) {
                         Toast.makeText(context, "Please enter a posting title", Toast.LENGTH_SHORT).show()
-                    } else if (contactEmail.isBlank()) {
-                        Toast.makeText(context, "Please enter an email", Toast.LENGTH_SHORT).show()
                     } else if (postingBody.isBlank()) {
                         Toast.makeText(context, "Please enter posting description details", Toast.LENGTH_SHORT).show()
                     } else {
@@ -1182,62 +1086,6 @@ private fun getAutomationJs(
                     }
                 }
 
-                // --- EXTRA STEP: GENERAL LINK SELECTION FOR ANY CHOOSE SCREEN ---
-                if (!actionTaken && autoClickEnabled) {
-                    var h1 = document.querySelector('h1');
-                    var pageText = document.body.textContent.toLowerCase();
-                    if ((h1 && h1.textContent.toLowerCase().includes("choose")) || pageText.includes("choose") || pageText.includes("select")) {
-                        var choiceLinks = [];
-                        var linkSelectors = [
-                            '.page-container a', 
-                            '#toc a', 
-                            '.leftside a', 
-                            '.rightside a', 
-                            'blockquote a', 
-                            'ul a', 
-                            'ol a', 
-                            '.categories a',
-                            '#classic a'
-                        ];
-                        for (var s = 0; s < linkSelectors.length; s++) {
-                            var elements = document.querySelectorAll(linkSelectors[s]);
-                            if (elements.length > 0) {
-                                for (var k = 0; k < elements.length; k++) {
-                                    choiceLinks.push(elements[k]);
-                                }
-                                break;
-                            }
-                        }
-                        
-                        if (choiceLinks.length === 0) {
-                            var mainContent = document.querySelector('.page-container') || document.querySelector('form') || document.body;
-                            var allLinks = mainContent.querySelectorAll('a');
-                            for (var k = 0; k < allLinks.length; k++) {
-                                var link = allLinks[k];
-                                var text = link.textContent.toLowerCase();
-                                var href = link.getAttribute('href') || "";
-                                if (href && !href.startsWith('//') && !href.startsWith('http') && !href.includes('about') && !href.includes('help') && !text.includes('home') && !text.includes('craigslist') && !text.includes('logout') && !text.includes('back')) {
-                                    choiceLinks.push(link);
-                                }
-                            }
-                        }
-
-                        if (choiceLinks.length > 0) {
-                            var targetIndex = Math.min(2, choiceLinks.length - 1);
-                            if (targetIndex >= 0) {
-                                var link = choiceLinks[targetIndex];
-                                actionTaken = true;
-                                highlight(link);
-                                updateBanner('Selected 3rd/available option "' + link.textContent.trim() + '"', '#1565C0');
-                                setTimeout(function() {
-                                    link.setAttribute('data-cl-clicked', 'true');
-                                    link.click();
-                                }, 1500);
-                                return;
-                            }
-                        }
-                    }
-                }
 
                 // --- STEP 4: FILL POST DETAILS FORM PAGE ---
                 var isFormFilled = false;

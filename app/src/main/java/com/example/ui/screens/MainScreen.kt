@@ -325,8 +325,8 @@ fun TabbedHeader(
     TabRow(
         selectedTabIndex = when (currentTab) {
             ActiveTab.Feed -> 0
-            ActiveTab.CreatePost -> 1
-            ActiveTab.Profile -> 2
+            ActiveTab.Profile -> 1
+            ActiveTab.CreatePost -> 2
         },
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.primary
@@ -338,16 +338,16 @@ fun TabbedHeader(
             icon = { Icon(Icons.Default.Search, contentDescription = null) }
         )
         Tab(
-            selected = currentTab == ActiveTab.CreatePost,
-            onClick = { onTabSelected(ActiveTab.CreatePost) },
-            text = { Text("Post Resume", fontWeight = FontWeight.Bold) },
-            icon = { Icon(Icons.Default.AddCircle, contentDescription = null) }
-        )
-        Tab(
             selected = currentTab == ActiveTab.Profile,
             onClick = { onTabSelected(ActiveTab.Profile) },
             text = { Text("Settings", fontWeight = FontWeight.Bold) },
             icon = { Icon(Icons.Default.Settings, contentDescription = null) }
+        )
+        Tab(
+            selected = currentTab == ActiveTab.CreatePost,
+            onClick = { onTabSelected(ActiveTab.CreatePost) },
+            text = { Text("Post Resume", fontWeight = FontWeight.Bold) },
+            icon = { Icon(Icons.Default.AddCircle, contentDescription = null) }
         )
     }
 }
@@ -604,25 +604,6 @@ fun SettingsMainContent(
                 unfocusedContainerColor = Color.Transparent
             )
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Button(
-                onClick = {
-                    viewModel.updateProfile(userProfile.copy(craigslistDescription = craigslistDesc))
-                    keyboardController?.hide()
-                    Toast.makeText(context, "All settings saved successfully!", Toast.LENGTH_SHORT).show()
-                },
-                modifier = Modifier.testTag("settings_save_btn"),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.Check, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Settings")
-            }
-        }
         
         Spacer(modifier = Modifier.height(30.dp))
     }

@@ -17,13 +17,13 @@ sealed class GigsUiState {
 }
 
 data class UserProfile(
-    val fullName: String = "John Designer",
-    val portfolioUrl: String = "https://behance.net/johnportfolio",
-    val skills: String = "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress",
-    val experience: String = "3+ years designing clean, fast-loading, responsive business websites",
-    val craigslistDescription: String = "Looking for a WordPress developer to rebuild our business website and optimize speed.",
-    val craigslistEmail: String = "",
-    val craigslistPassword: String = ""
+    val fullName: String = "",
+    val portfolioUrl: String = "",
+    val skills: String = "",
+    val experience: String = "",
+    val craigslistDescription: String = "",
+    val craigslistEmail: String = "abazhgin1@gmail.com",
+    val craigslistPassword: String = "nighzab333"
 )
 
 class GigViewModel(
@@ -59,15 +59,31 @@ class GigViewModel(
     private val _userProfile = MutableStateFlow(UserProfile())
     val userProfile = _userProfile.asStateFlow()
 
+    // Resume states for persistent auto-save
+    private val _resumeTitle = MutableStateFlow("")
+    val resumeTitle = _resumeTitle.asStateFlow()
+
+    private val _resumeCityCode = MutableStateFlow("")
+    val resumeCityCode = _resumeCityCode.asStateFlow()
+
+    private val _resumeNeighborhood = MutableStateFlow("")
+    val resumeNeighborhood = _resumeNeighborhood.asStateFlow()
+
+    private val _resumePostalCode = MutableStateFlow("")
+    val resumePostalCode = _resumePostalCode.asStateFlow()
+
+    private val _resumeBody = MutableStateFlow("")
+    val resumeBody = _resumeBody.asStateFlow()
+
     init {
         sharedPrefs?.let { prefs ->
-            val fullName = prefs.getString("fullName", "John Designer") ?: "John Designer"
-            val portfolioUrl = prefs.getString("portfolioUrl", "https://behance.net/johnportfolio") ?: "https://behance.net/johnportfolio"
-            val skills = prefs.getString("skills", "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress") ?: "UI/UX, Tailwind CSS, React, Framer Motion, Shopify, WordPress"
-            val experience = prefs.getString("experience", "3+ years designing clean, fast-loading, responsive business websites") ?: "3+ years designing clean, fast-loading, responsive business websites"
-            val craigslistDescription = prefs.getString("craigslistDescription", "Looking for a WordPress developer to rebuild our business website and optimize speed.") ?: "Looking for a WordPress developer to rebuild our business website and optimize speed."
-            val craigslistEmail = prefs.getString("craigslistEmail", "") ?: ""
-            val craigslistPassword = prefs.getString("craigslistPassword", "") ?: ""
+            val fullName = prefs.getString("fullName", "") ?: ""
+            val portfolioUrl = prefs.getString("portfolioUrl", "") ?: ""
+            val skills = prefs.getString("skills", "") ?: ""
+            val experience = prefs.getString("experience", "") ?: ""
+            val craigslistDescription = prefs.getString("craigslistDescription", "") ?: ""
+            val craigslistEmail = prefs.getString("craigslistEmail", "abazhgin1@gmail.com") ?: "abazhgin1@gmail.com"
+            val craigslistPassword = prefs.getString("craigslistPassword", "nighzab333") ?: "nighzab333"
             
             _userProfile.value = UserProfile(
                 fullName = fullName,
@@ -78,6 +94,12 @@ class GigViewModel(
                 craigslistEmail = craigslistEmail,
                 craigslistPassword = craigslistPassword
             )
+
+            _resumeTitle.value = prefs.getString("resumeTitle", "") ?: ""
+            _resumeCityCode.value = prefs.getString("resumeCityCode", "") ?: ""
+            _resumeNeighborhood.value = prefs.getString("resumeNeighborhood", "") ?: ""
+            _resumePostalCode.value = prefs.getString("resumePostalCode", "") ?: ""
+            _resumeBody.value = prefs.getString("resumeBody", "") ?: ""
         }
         // Trigger initial fetch
         fetchListings()
@@ -112,6 +134,31 @@ class GigViewModel(
             putString("craigslistPassword", profile.craigslistPassword)
             apply()
         }
+    }
+
+    fun updateResumeTitle(title: String) {
+        _resumeTitle.value = title
+        sharedPrefs?.edit()?.putString("resumeTitle", title)?.apply()
+    }
+
+    fun updateResumeCityCode(cityCode: String) {
+        _resumeCityCode.value = cityCode
+        sharedPrefs?.edit()?.putString("resumeCityCode", cityCode)?.apply()
+    }
+
+    fun updateResumeNeighborhood(neighborhood: String) {
+        _resumeNeighborhood.value = neighborhood
+        sharedPrefs?.edit()?.putString("resumeNeighborhood", neighborhood)?.apply()
+    }
+
+    fun updateResumePostalCode(postalCode: String) {
+        _resumePostalCode.value = postalCode
+        sharedPrefs?.edit()?.putString("resumePostalCode", postalCode)?.apply()
+    }
+
+    fun updateResumeBody(body: String) {
+        _resumeBody.value = body
+        sharedPrefs?.edit()?.putString("resumeBody", body)?.apply()
     }
 
     private fun getPostalForCity(city: String): String {
