@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -57,8 +58,8 @@ fun CreatePostMainContent(
     val postalCode by viewModel.resumePostalCode.collectAsStateWithLifecycle()
     val postingBody by viewModel.resumeBody.collectAsStateWithLifecycle()
 
-    var contactName by remember { mutableStateOf(userProfile.fullName) }
-    var contactEmail by remember { mutableStateOf("abazhgin1@gmail.com") }
+    var contactName by remember(userProfile.fullName) { mutableStateOf(userProfile.fullName) }
+    var contactEmail by remember(userProfile.craigslistEmail) { mutableStateOf(userProfile.craigslistEmail) }
     var contactPhone by remember { mutableStateOf("") }
     val postType = "resume"
 
@@ -290,12 +291,23 @@ fun CreatePostMainContent(
             ) {
                 AndroidView(
                     factory = { ctx ->
+                        // Always clear cookies when initializing
+                        try {
+                            CookieManager.getInstance().removeAllCookies(null)
+                            CookieManager.getInstance().flush()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+
                         WebView(ctx).apply {
                             webViewInstance = this
+                            clearCache(true)
+                            clearHistory()
+                            clearFormData()
                             @SuppressLint("SetJavaScriptEnabled")
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
-                            settings.cacheMode = WebSettings.LOAD_DEFAULT
+                            settings.cacheMode = WebSettings.LOAD_NO_CACHE
                             settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                             
                             webViewClient = object : WebViewClient() {

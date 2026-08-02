@@ -22,8 +22,8 @@ data class UserProfile(
     val skills: String = "",
     val experience: String = "",
     val craigslistDescription: String = "",
-    val craigslistEmail: String = "abazhgin1@gmail.com",
-    val craigslistPassword: String = "nighzab333"
+    val craigslistEmail: String = "",
+    val craigslistPassword: String = ""
 )
 
 class GigViewModel(
@@ -82,8 +82,8 @@ class GigViewModel(
             val skills = prefs.getString("skills", "") ?: ""
             val experience = prefs.getString("experience", "") ?: ""
             val craigslistDescription = prefs.getString("craigslistDescription", "") ?: ""
-            val craigslistEmail = prefs.getString("craigslistEmail", "abazhgin1@gmail.com") ?: "abazhgin1@gmail.com"
-            val craigslistPassword = prefs.getString("craigslistPassword", "nighzab333") ?: "nighzab333"
+            val craigslistEmail = prefs.getString("craigslistEmail", "") ?: ""
+            val craigslistPassword = prefs.getString("craigslistPassword", "") ?: ""
             
             _userProfile.value = UserProfile(
                 fullName = fullName,
