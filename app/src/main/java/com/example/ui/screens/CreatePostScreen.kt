@@ -112,7 +112,17 @@ fun CreatePostMainContent(
         "sacramento" to "Sacramento",
         "phoenix" to "Phoenix",
         "dallas" to "Dallas",
-        "atlanta" to "Atlanta"
+        "atlanta" to "Atlanta",
+        "houston" to "Houston",
+        "philadelphia" to "Philadelphia",
+        "washingtondc" to "Washington DC",
+        "lasvegas" to "Las Vegas",
+        "orlando" to "Orlando",
+        "minneapolis" to "Minneapolis",
+        "detroit" to "Detroit",
+        "tampa" to "Tampa",
+        "pittsburgh" to "Pittsburgh",
+        "charlotte" to "Charlotte"
     )
 
     if (isWebViewOpen) {
@@ -657,6 +667,16 @@ private fun getCraigslistPostingCityCode(city: String): String {
         "phoenix" -> "phx"
         "dallas" -> "dal"
         "atlanta" -> "atl"
+        "houston" -> "hou"
+        "philadelphia" -> "phi"
+        "washingtondc" -> "wdc"
+        "lasvegas" -> "lvs"
+        "orlando" -> "orl"
+        "minneapolis" -> "min"
+        "detroit" -> "det"
+        "tampa" -> "tpa"
+        "pittsburgh" -> "pit"
+        "charlotte" -> "cha"
         else -> "sfo"
     }
 }
@@ -680,6 +700,16 @@ private fun getPostalForCityCode(city: String): String {
         "phoenix" -> "85001"
         "dallas" -> "75201"
         "atlanta" -> "30301"
+        "houston" -> "77002"
+        "philadelphia" -> "19107"
+        "washingtondc" -> "20001"
+        "lasvegas" -> "89101"
+        "orlando" -> "32801"
+        "minneapolis" -> "55401"
+        "detroit" -> "48201"
+        "tampa" -> "33602"
+        "pittsburgh" -> "15219"
+        "charlotte" -> "28202"
         else -> "94102"
     }
 }
@@ -703,6 +733,16 @@ private fun getNeighborhoodForCityCode(city: String): String {
         "phoenix" -> "Phoenix"
         "dallas" -> "Dallas"
         "atlanta" -> "Atlanta"
+        "houston" -> "Houston"
+        "philadelphia" -> "Center City"
+        "washingtondc" -> "Downtown"
+        "lasvegas" -> "Las Vegas"
+        "orlando" -> "Orlando"
+        "minneapolis" -> "Minneapolis"
+        "detroit" -> "Detroit"
+        "tampa" -> "Tampa"
+        "pittsburgh" -> "Pittsburgh"
+        "charlotte" -> "Charlotte"
         else -> ""
     }
 }

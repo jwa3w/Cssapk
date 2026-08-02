@@ -179,6 +179,16 @@ class GigViewModel(
             "phoenix" -> "85001"
             "dallas" -> "75201"
             "atlanta" -> "30301"
+            "houston" -> "77002"
+            "philadelphia" -> "19107"
+            "washingtondc" -> "20001"
+            "lasvegas" -> "89101"
+            "orlando" -> "32801"
+            "minneapolis" -> "55401"
+            "detroit" -> "48201"
+            "tampa" -> "33602"
+            "pittsburgh" -> "15219"
+            "charlotte" -> "28202"
             else -> "94102"
         }
     }
@@ -195,7 +205,9 @@ class GigViewModel(
                     val targetCities = listOf(
                         "sfbay", "newyork", "losangeles", "seattle", "chicago",
                         "austin", "boston", "denver", "portland", "miami",
-                        "fresno", "sandiego", "sacramento", "phoenix", "dallas", "atlanta"
+                        "fresno", "sandiego", "sacramento", "phoenix", "dallas", "atlanta",
+                        "houston", "philadelphia", "washingtondc", "lasvegas", "orlando",
+                        "minneapolis", "detroit", "tampa", "pittsburgh", "charlotte"
                     )
                     val deferredList = targetCities.map { singleCity ->
                         async {
