@@ -63,6 +63,12 @@ fun CreatePostMainContent(
     var contactPhone by remember { mutableStateOf("") }
     val postType = "resume"
 
+    val credentialsList by viewModel.credentials.collectAsStateWithLifecycle()
+    var showAddCredentialDialog by remember { mutableStateOf(false) }
+    var showCredentialSelectorDropdown by remember { mutableStateOf(false) }
+    var newCredEmail by remember { mutableStateOf("") }
+    var newCredPassword by remember { mutableStateOf("") }
+
     // Dropdown visibility states
     var showCityDropdown by remember { mutableStateOf(false) }
 
@@ -447,7 +453,10 @@ fun CreatePostMainContent(
             OutlinedTextField(
                 value = title,
                 onValueChange = { viewModel.updateResumeTitle(it) },
-                label = { Text("Posting Title") },
+                label = {
+                    val cityName = cityOptions.find { it.first == cityCode }?.second ?: cityCode
+                    Text("Posting Title (Custom for $cityName)")
+                },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -540,7 +549,10 @@ fun CreatePostMainContent(
             OutlinedTextField(
                 value = postingBody,
                 onValueChange = { viewModel.updateResumeBody(it) },
-                label = { Text("Posting Description (Resume / Services / Pitch Body)") },
+                label = {
+                    val cityName = cityOptions.find { it.first == cityCode }?.second ?: cityCode
+                    Text("Posting Description (Custom for $cityName)")
+                },
                 minLines = 8,
                 maxLines = 16,
                 modifier = Modifier
@@ -561,35 +573,154 @@ fun CreatePostMainContent(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "Craigslist Account Authentication",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Craigslist Account Authentication",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        
+                        // Add Account small button
+                        TextButton(
+                            onClick = { 
+                                newCredEmail = ""
+                                newCredPassword = ""
+                                showAddCredentialDialog = true 
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text("Add Account", fontSize = 11.sp)
+                        }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    if (userProfile.craigslistEmail.isNotBlank()) {
+                    
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (credentialsList.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedCard(
+                                onClick = { showCredentialSelectorDropdown = true },
+                                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth().testTag("post_cred_select_card")
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Active Account",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                        Text(
+                                            text = userProfile.craigslistEmail.ifBlank { "Select an account..." },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            overflow = TextOverflow.Ellipsis,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (userProfile.craigslistEmail.isNotBlank()) {
+                                            IconButton(
+                                                onClick = { viewModel.deleteCredential(userProfile.craigslistEmail) },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Delete Account",
+                                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = showCredentialSelectorDropdown,
+                                onDismissRequest = { showCredentialSelectorDropdown = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                credentialsList.forEach { cred ->
+                                    DropdownMenuItem(
+                                        text = { Text(cred.email, fontSize = 13.sp) },
+                                        onClick = {
+                                            viewModel.selectCredential(cred.email)
+                                            showCredentialSelectorDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Auto-login active for account: ${userProfile.craigslistEmail}",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
-                        Text(
-                            text = "No account configured. Tap the Settings tab to configure your credentials.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // Empty credentials state
+                        OutlinedCard(
+                            colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No Craigslist accounts saved yet.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = { 
+                                        newCredEmail = ""
+                                        newCredPassword = ""
+                                        showAddCredentialDialog = true 
+                                    },
+                                    shape = RoundedCornerShape(6.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Add Account Details", fontSize = 11.sp)
+                                }
+                            }
+                        }
                     }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = {
@@ -610,6 +741,72 @@ fun CreatePostMainContent(
                         Text("Show Craigslist user", fontSize = 12.sp)
                     }
                 }
+            }
+
+            // Dialog for adding a new Craigslist credential
+            if (showAddCredentialDialog) {
+                var showAddPassword by remember { mutableStateOf(false) }
+                AlertDialog(
+                    onDismissRequest = { showAddCredentialDialog = false },
+                    title = { Text("Add Craigslist Account", style = MaterialTheme.typography.titleMedium) },
+                    text = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "These credentials are used only locally on your device to autofill the login form.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedTextField(
+                                value = newCredEmail,
+                                onValueChange = { newCredEmail = it },
+                                label = { Text("Craigslist Email") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().testTag("add_cl_email_input"),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+                            )
+                            OutlinedTextField(
+                                value = newCredPassword,
+                                onValueChange = { newCredPassword = it },
+                                label = { Text("Craigslist Password") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().testTag("add_cl_password_input"),
+                                visualTransformation = if (showAddPassword) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                                trailingIcon = {
+                                    IconButton(onClick = { showAddPassword = !showAddPassword }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "Toggle password visibility"
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                if (newCredEmail.isNotBlank() && newCredPassword.isNotBlank()) {
+                                    viewModel.addCredential(newCredEmail, newCredPassword)
+                                    showAddCredentialDialog = false
+                                    Toast.makeText(context, "Account saved successfully!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Please fill in both email and password", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        ) {
+                            Text("Save Account")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAddCredentialDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
 
             // Launch button
@@ -862,6 +1059,29 @@ private fun getAutomationJs(
             function runAutomationCycle() {
                 var form = document.querySelector('form');
                 var actionTaken = false;
+
+                // --- AUTO-CLICK "IN" / "LOG IN" / "SIGN IN" LINKS DURING AUTHENTICATION ---
+                if (autoClickEnabled) {
+                    var authLinks = document.querySelectorAll('a');
+                    for (var l = 0; l < authLinks.length; l++) {
+                        var link = authLinks[l];
+                        var linkText = (link.textContent || "").toLowerCase().trim();
+                        // Match links having 'in' or typical login/signin text
+                        if (linkText === 'in' || linkText === 'log in' || linkText === 'sign in' || linkText === 'login' || linkText === 'signin' ||
+                            linkText.includes('log in') || linkText.includes('sign in') || linkText.includes('login') || linkText.includes('signin')) {
+                            if (!link.getAttribute('data-cl-clicked')) {
+                                updateBanner('Auto-clicking authentication link: "' + link.textContent.trim() + '"...', '#1565C0');
+                                highlight(link);
+                                actionTaken = true;
+                                setTimeout(function() {
+                                    link.setAttribute('data-cl-clicked', 'true');
+                                    link.click();
+                                }, 1000);
+                                return;
+                            }
+                        }
+                    }
+                }
 
                 // --- CRAIGSLIST LOGIN AUTO-FILL ---
                 var loginEmailInput = document.getElementById('inputEmailHandle') || 

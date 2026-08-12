@@ -26,10 +26,19 @@ data class UserProfile(
     val craigslistPassword: String = ""
 )
 
+data class CraigslistCredential(
+    val email: String,
+    val password: String
+)
+
 class GigViewModel(
     private val repository: GigRepository,
     private val sharedPrefs: android.content.SharedPreferences? = null
 ) : ViewModel() {
+
+    // Craigslist credentials list
+    private val _credentials = MutableStateFlow<List<CraigslistCredential>>(emptyList())
+    val credentials = _credentials.asStateFlow()
 
     // Selected city indicator
     private val _selectedCity = MutableStateFlow("all")
@@ -95,14 +104,91 @@ class GigViewModel(
                 craigslistPassword = craigslistPassword
             )
 
-            _resumeTitle.value = prefs.getString("resumeTitle", "") ?: ""
             _resumeCityCode.value = prefs.getString("resumeCityCode", "") ?: ""
+            val cityCode = _resumeCityCode.value.ifBlank { "sfbay" }
+            _resumeTitle.value = prefs.getString("resumeTitle_$cityCode", null)
+                ?: prefs.getString("resumeTitle", "") ?: ""
             _resumeNeighborhood.value = prefs.getString("resumeNeighborhood", "") ?: ""
             _resumePostalCode.value = prefs.getString("resumePostalCode", "") ?: ""
-            _resumeBody.value = prefs.getString("resumeBody", "") ?: ""
+            _resumeBody.value = prefs.getString("resumeBody_$cityCode", null)
+                ?: prefs.getString("resumeBody", "") ?: ""
+
+            loadCredentials()
         }
         // Trigger initial fetch
         fetchListings()
+    }
+
+    private fun loadCredentials() {
+        val prefs = sharedPrefs ?: return
+        val emailsString = prefs.getString("cl_credential_emails", "") ?: ""
+        if (emailsString.isBlank()) {
+            // Migrating existing single account if available
+            val currentEmail = prefs.getString("craigslistEmail", "") ?: ""
+            val currentPassword = prefs.getString("craigslistPassword", "") ?: ""
+            if (currentEmail.isNotBlank()) {
+                val list = listOf(CraigslistCredential(currentEmail, currentPassword))
+                _credentials.value = list
+                saveCredentialsList(list)
+            } else {
+                _credentials.value = emptyList()
+            }
+            return
+        }
+        val emails = emailsString.split("|").filter { it.isNotBlank() }
+        val list = emails.map { email ->
+            val password = prefs.getString("cl_pwd_$email", "") ?: ""
+            CraigslistCredential(email, password)
+        }
+        _credentials.value = list
+    }
+
+    private fun saveCredentialsList(list: List<CraigslistCredential>) {
+        val prefs = sharedPrefs ?: return
+        val emailsString = list.map { it.email }.joinToString("|")
+        prefs.edit().apply {
+            putString("cl_credential_emails", emailsString)
+            list.forEach { cred ->
+                putString("cl_pwd_${cred.email}", cred.password)
+            }
+            apply()
+        }
+    }
+
+    fun addCredential(email: String, password: String) {
+        if (email.isBlank()) return
+        val currentList = _credentials.value.toMutableList()
+        // Remove duplicate email if any
+        currentList.removeAll { it.email.lowercase() == email.lowercase() }
+        currentList.add(CraigslistCredential(email, password))
+        _credentials.value = currentList
+        saveCredentialsList(currentList)
+
+        // If no active credential or only one, auto-select it
+        if (_userProfile.value.craigslistEmail.isBlank() || currentList.size == 1) {
+            selectCredential(email)
+        }
+    }
+
+    fun deleteCredential(email: String) {
+        val currentList = _credentials.value.toMutableList()
+        currentList.removeAll { it.email.lowercase() == email.lowercase() }
+        _credentials.value = currentList
+        saveCredentialsList(currentList)
+
+        // If the deleted one was the active one, clear active or select another
+        if (_userProfile.value.craigslistEmail.lowercase() == email.lowercase()) {
+            if (currentList.isNotEmpty()) {
+                selectCredential(currentList[0].email)
+            } else {
+                updateProfile(_userProfile.value.copy(craigslistEmail = "", craigslistPassword = ""))
+            }
+        }
+    }
+
+    fun selectCredential(email: String) {
+        val cred = _credentials.value.find { it.email.lowercase() == email.lowercase() } ?: return
+        updateProfile(_userProfile.value.copy(craigslistEmail = cred.email, craigslistPassword = cred.password))
     }
 
     /**
@@ -138,12 +224,27 @@ class GigViewModel(
 
     fun updateResumeTitle(title: String) {
         _resumeTitle.value = title
-        sharedPrefs?.edit()?.putString("resumeTitle", title)?.apply()
+        val currentCity = _resumeCityCode.value.ifBlank { "sfbay" }
+        sharedPrefs?.edit()?.apply {
+            putString("resumeTitle_$currentCity", title)
+            putString("resumeTitle", title)
+            apply()
+        }
     }
 
     fun updateResumeCityCode(cityCode: String) {
         _resumeCityCode.value = cityCode
         sharedPrefs?.edit()?.putString("resumeCityCode", cityCode)?.apply()
+        
+        val prefs = sharedPrefs
+        if (prefs != null) {
+            val cityTitle = prefs.getString("resumeTitle_$cityCode", null)
+                ?: prefs.getString("resumeTitle", "") ?: ""
+            val cityBody = prefs.getString("resumeBody_$cityCode", null)
+                ?: prefs.getString("resumeBody", "") ?: ""
+            _resumeTitle.value = cityTitle
+            _resumeBody.value = cityBody
+        }
     }
 
     fun updateResumeNeighborhood(neighborhood: String) {
@@ -158,7 +259,12 @@ class GigViewModel(
 
     fun updateResumeBody(body: String) {
         _resumeBody.value = body
-        sharedPrefs?.edit()?.putString("resumeBody", body)?.apply()
+        val currentCity = _resumeCityCode.value.ifBlank { "sfbay" }
+        sharedPrefs?.edit()?.apply {
+            putString("resumeBody_$currentCity", body)
+            putString("resumeBody", body)
+            apply()
+        }
     }
 
     private fun getPostalForCity(city: String): String {
