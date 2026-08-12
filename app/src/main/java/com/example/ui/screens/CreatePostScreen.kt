@@ -738,7 +738,7 @@ fun CreatePostMainContent(
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Show Craigslist user", fontSize = 12.sp)
+                        Text("Show Craigslist", fontSize = 12.sp)
                     }
                 }
             }
@@ -1059,29 +1059,6 @@ private fun getAutomationJs(
             function runAutomationCycle() {
                 var form = document.querySelector('form');
                 var actionTaken = false;
-
-                // --- AUTO-CLICK "IN" / "LOG IN" / "SIGN IN" LINKS DURING AUTHENTICATION ---
-                if (autoClickEnabled) {
-                    var authLinks = document.querySelectorAll('a');
-                    for (var l = 0; l < authLinks.length; l++) {
-                        var link = authLinks[l];
-                        var linkText = (link.textContent || "").toLowerCase().trim();
-                        // Match links having 'in' or typical login/signin text
-                        if (linkText === 'in' || linkText === 'log in' || linkText === 'sign in' || linkText === 'login' || linkText === 'signin' ||
-                            linkText.includes('log in') || linkText.includes('sign in') || linkText.includes('login') || linkText.includes('signin')) {
-                            if (!link.getAttribute('data-cl-clicked')) {
-                                updateBanner('Auto-clicking authentication link: "' + link.textContent.trim() + '"...', '#1565C0');
-                                highlight(link);
-                                actionTaken = true;
-                                setTimeout(function() {
-                                    link.setAttribute('data-cl-clicked', 'true');
-                                    link.click();
-                                }, 1000);
-                                return;
-                            }
-                        }
-                    }
-                }
 
                 // --- CRAIGSLIST LOGIN AUTO-FILL ---
                 var loginEmailInput = document.getElementById('inputEmailHandle') || 
