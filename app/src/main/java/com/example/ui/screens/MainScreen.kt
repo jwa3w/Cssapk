@@ -365,6 +365,7 @@ fun FeedMainContent(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = Modifier
@@ -422,7 +423,7 @@ fun FeedMainContent(
             }
             is GigsUiState.Success -> {
                 // Filter list dynamically based on search bar
-                val filteredGigs = if (searchQuery.trim().isEmpty()) {
+                var filteredGigs = if (searchQuery.trim().isEmpty()) {
                     uiState.list
                 } else {
                     val lower = searchQuery.trim().lowercase()
@@ -430,6 +431,13 @@ fun FeedMainContent(
                         gig.title.lowercase().contains(lower) ||
                         gig.description.lowercase().contains(lower) ||
                         gig.tags.any { it.lowercase().contains(lower) }
+                    }
+                }
+
+                // Apply title case filter if setting is enabled
+                if (userProfile.ignoreCapitalizedTitles) {
+                    filteredGigs = filteredGigs.filterNot { gig ->
+                        isTitleCaseExceptConjunctions(gig.displayTitle)
                     }
                 }
 
@@ -604,9 +612,108 @@ fun SettingsMainContent(
                 unfocusedContainerColor = Color.Transparent
             )
         )
+
+        // Feed Filter Settings Card
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("settings_feed_filter_card"),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.List,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Feed Filter Settings",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                Text(
+                    text = "Configure custom filters to refine listings visible in your Craigslist feed.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.updateProfile(userProfile.copy(ignoreCapitalizedTitles = !userProfile.ignoreCapitalizedTitles))
+                        }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                        Text(
+                            text = "Filter Title Case Listings",
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Ignore listings where the Craigslist post title has every word capitalized (except conjunctions and prepositions).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = userProfile.ignoreCapitalizedTitles,
+                        onCheckedChange = { isChecked ->
+                            viewModel.updateProfile(userProfile.copy(ignoreCapitalizedTitles = isChecked))
+                        },
+                        modifier = Modifier.testTag("settings_filter_capitalized_switch")
+                    )
+                }
+            }
+        }
         
         Spacer(modifier = Modifier.height(30.dp))
     }
+}
+
+// Helper function to check if title is in Title Case / every word capitalized except conjunctions
+fun isTitleCaseExceptConjunctions(title: String): Boolean {
+    val words = title.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    if (words.isEmpty()) return false
+    
+    val conjunctionsAndPrepositions = setOf(
+        "and", "or", "but", "for", "nor", "so", "yet",
+        "a", "an", "the",
+        "in", "to", "of", "at", "by", "with", "on", "from", "about", "as"
+    )
+    
+    var checkedNonConjunctionCount = 0
+    for (word in words) {
+        val cleanWord = word.replace(Regex("^[^a-zA-Z]+"), "")
+        if (cleanWord.isEmpty()) continue
+        
+        val lowerWord = cleanWord.lowercase(java.util.Locale.ROOT)
+        if (conjunctionsAndPrepositions.contains(lowerWord)) {
+            continue
+        }
+        
+        if (cleanWord[0].isLowerCase()) {
+            return false
+        }
+        checkedNonConjunctionCount++
+    }
+    
+    return checkedNonConjunctionCount > 0
 }
 
 @Composable

@@ -738,7 +738,7 @@ fun CreatePostMainContent(
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Show Craigslist", fontSize = 12.sp)
+                        Text("Show Craigslist user", fontSize = 12.sp)
                     }
                 }
             }

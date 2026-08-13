@@ -23,7 +23,8 @@ data class UserProfile(
     val experience: String = "",
     val craigslistDescription: String = "",
     val craigslistEmail: String = "",
-    val craigslistPassword: String = ""
+    val craigslistPassword: String = "",
+    val ignoreCapitalizedTitles: Boolean = false
 )
 
 data class CraigslistCredential(
@@ -93,6 +94,7 @@ class GigViewModel(
             val craigslistDescription = prefs.getString("craigslistDescription", "") ?: ""
             val craigslistEmail = prefs.getString("craigslistEmail", "") ?: ""
             val craigslistPassword = prefs.getString("craigslistPassword", "") ?: ""
+            val ignoreCapitalizedTitles = prefs.getBoolean("ignoreCapitalizedTitles", false)
             
             _userProfile.value = UserProfile(
                 fullName = fullName,
@@ -101,7 +103,8 @@ class GigViewModel(
                 experience = experience,
                 craigslistDescription = craigslistDescription,
                 craigslistEmail = craigslistEmail,
-                craigslistPassword = craigslistPassword
+                craigslistPassword = craigslistPassword,
+                ignoreCapitalizedTitles = ignoreCapitalizedTitles
             )
 
             _resumeCityCode.value = prefs.getString("resumeCityCode", "") ?: ""
@@ -218,6 +221,7 @@ class GigViewModel(
             putString("craigslistDescription", profile.craigslistDescription)
             putString("craigslistEmail", profile.craigslistEmail)
             putString("craigslistPassword", profile.craigslistPassword)
+            putBoolean("ignoreCapitalizedTitles", profile.ignoreCapitalizedTitles)
             apply()
         }
     }
